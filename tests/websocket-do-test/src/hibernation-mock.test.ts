@@ -52,7 +52,7 @@ describe("BaseWebSocketDO Constructor with Mocked Base", () => {
 		}
 
 		class TestWebSocketDO extends MockDurableObject {
-			protected readonly sessions = new Map<WebSocket, any>();
+			protected readonly sessions = new Map<WebSocket, unknown>();
 
 			constructor(ctx: typeof mockState, env: typeof mockEnv) {
 				super(ctx, env);
@@ -131,7 +131,7 @@ describe("BaseWebSocketDO Constructor with Mocked Base", () => {
 		const mockEnv = {} as Env;
 
 		class TestWebSocketDO {
-			protected readonly sessions = new Map<WebSocket, any>();
+			protected readonly sessions = new Map<WebSocket, unknown>();
 			ctx: typeof mockState;
 			env: typeof mockEnv;
 

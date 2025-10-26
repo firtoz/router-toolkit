@@ -63,7 +63,7 @@
     },
     "packages/websocket-do": {
       "name": "@firtoz/websocket-do",
-      "version": "6.0.1",
+      "version": "6.0.2",
       "devDependencies": {
         "@types/react": "catalog:",
         "bun-types": "catalog:",
@@ -78,6 +78,17 @@
         "@cloudflare/workers-types": "catalog:",
         "@firtoz/hono-fetcher": "workspace:*",
         "hono": "catalog:",
+      },
+    },
+    "packages/worker-helper": {
+      "name": "@firtoz/worker-helper",
+      "version": "1.0.0",
+      "dependencies": {
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "bun-types": "catalog:",
       },
     },
     "tests/router-toolkit-test": {
@@ -109,7 +120,7 @@
     },
     "tests/websocket-do-test": {
       "name": "websocket-do-test",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "dependencies": {
         "@firtoz/hono-fetcher": "^2.3.1",
         "@firtoz/websocket-do": "workspace:*",
@@ -388,6 +399,8 @@
     "@firtoz/router-toolkit": ["@firtoz/router-toolkit@workspace:packages/router-toolkit"],
 
     "@firtoz/websocket-do": ["@firtoz/websocket-do@workspace:packages/websocket-do"],
+
+    "@firtoz/worker-helper": ["@firtoz/worker-helper@workspace:packages/worker-helper"],
 
     "@hono/node-server": ["@hono/node-server@1.19.5", "", { "peerDependencies": { "hono": "^4" } }, "sha512-iBuhh+uaaggeAuf+TftcjZyWh2GEgZcVGXkNtskLVoWaXhnJtC5HLHrU8W1KHDoucqO1MswwglmkWLFyiDn4WQ=="],
 

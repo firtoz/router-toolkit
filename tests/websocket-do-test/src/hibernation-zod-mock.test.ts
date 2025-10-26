@@ -67,7 +67,7 @@ describe("ZodWebSocketDO Constructor Hibernation Unit Tests", () => {
 
 		// Mock ZodWebSocketDO
 		class TestZodWebSocketDO extends MockDurableObject {
-			protected readonly sessions = new Map<WebSocket, any>();
+			protected readonly sessions = new Map<WebSocket, unknown>();
 
 			constructor(
 				ctx: typeof mockState,
@@ -183,7 +183,7 @@ describe("ZodWebSocketDO Constructor Hibernation Unit Tests", () => {
 		}
 
 		class TestZodWebSocketDO extends MockDurableObject {
-			protected readonly sessions = new Map<WebSocket, any>();
+			protected readonly sessions = new Map<WebSocket, unknown>();
 
 			constructor(
 				ctx: typeof mockState,
@@ -294,7 +294,7 @@ describe("ZodWebSocketDO Constructor Hibernation Unit Tests", () => {
 		}
 
 		class TestZodWebSocketDO extends MockDurableObject {
-			protected readonly sessions = new Map<WebSocket, any>();
+			protected readonly sessions = new Map<WebSocket, unknown>();
 
 			constructor(
 				ctx: typeof mockState,
@@ -394,7 +394,7 @@ describe("ZodWebSocketDO Constructor Hibernation Unit Tests", () => {
 		}
 
 		class TestZodWebSocketDO extends MockDurableObject {
-			protected readonly sessions = new Map<WebSocket, any>();
+			protected readonly sessions = new Map<WebSocket, unknown>();
 
 			constructor(
 				ctx: typeof mockState,
@@ -477,7 +477,7 @@ describe("ZodWebSocketDO Constructor Hibernation Unit Tests", () => {
 		}
 
 		class TestZodWebSocketDO extends MockDurableObject {
-			protected readonly sessions = new Map<WebSocket, any>();
+			protected readonly sessions = new Map<WebSocket, unknown>();
 
 			constructor(
 				ctx: typeof mockState,
