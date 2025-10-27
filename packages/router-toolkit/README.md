@@ -1175,7 +1175,7 @@ export const route: RoutePath<"/create-user"> = "/create-user";
 
 export const formSchema = z.object({
   name: z.string().min(1),
-  email: z.string().email(),
+  email: z.email(),
 });
 
 interface ValidationError {

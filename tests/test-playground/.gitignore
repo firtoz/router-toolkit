@@ -3,4 +3,6 @@
 
 # React Router
 /.react-router/
-/build/
+/build
+/test-results
+/playwright-report

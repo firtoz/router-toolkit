@@ -23,6 +23,10 @@
 		"test:watch": {
 			"persistent": true,
 			"outputLogs": "new-only"
+		},
+		"dev": {
+			"persistent": true,
+			"cache": false
 		}
 	}
 }

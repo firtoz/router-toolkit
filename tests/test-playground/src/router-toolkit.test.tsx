@@ -69,7 +69,7 @@ describe("formAction", () => {
 		const { success } = await import("@firtoz/maybe-error");
 
 		const schema = z.object({
-			email: z.string().email(),
+			email: z.email(),
 			password: z.string().min(8),
 		});
 
@@ -102,7 +102,7 @@ describe("formAction", () => {
 		const { success } = await import("@firtoz/maybe-error");
 
 		const schema = z.object({
-			email: z.string().email(),
+			email: z.email(),
 			password: z.string().min(8),
 		});
 
@@ -135,7 +135,7 @@ describe("formAction", () => {
 		const { fail } = await import("@firtoz/maybe-error");
 
 		const schema = z.object({
-			email: z.string().email(),
+			email: z.email(),
 			password: z.string().min(8),
 		});
 
@@ -172,7 +172,7 @@ describe("formAction", () => {
 		const { formAction } = await import("@firtoz/router-toolkit");
 
 		const schema = z.object({
-			email: z.string().email(),
+			email: z.email(),
 		});
 
 		const mockResponse = new Response(null, {
@@ -190,14 +190,14 @@ describe("formAction", () => {
 			email: "test@example.com",
 		});
 
-		await expect(action(args)).rejects.toBe(mockResponse);
+		expect(action(args)).rejects.toBe(mockResponse);
 	});
 
 	it("should return unknown error for unexpected exceptions", async () => {
 		const { formAction } = await import("@firtoz/router-toolkit");
 
 		const schema = z.object({
-			email: z.string().email(),
+			email: z.email(),
 		});
 
 		const mockHandler = mock(() =>
