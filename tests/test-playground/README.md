@@ -52,12 +52,12 @@ bun run test:e2e
 
 ### @firtoz/router-toolkit Tests
 
-- **/loader-test** - Testing `useDynamicFetcher` for data loading
-- **/action-test** - Testing `useDynamicSubmitter` for form actions
-- **/form-action-test** - Testing `formAction` with Zod validation
-- **/submitter-with-loader** - Testing integration of submitter with loader data
-- **/fetcher-data-refresh** - Testing programmatic data fetching
-- **/fetcher-invalidation** - Testing data invalidation and revalidation
+- **/router-toolkit/loader-test** - Testing `useDynamicFetcher` for data loading
+- **/router-toolkit/action-test** - Testing `useDynamicSubmitter` for form actions
+- **/router-toolkit/form-action-test** - Testing `formAction` with Zod validation
+- **/router-toolkit/submitter-with-loader** - Testing integration of submitter with loader data
+- **/router-toolkit/fetcher-data-refresh** - Testing programmatic data fetching
+- **/router-toolkit/fetcher-invalidation** - Testing data invalidation and revalidation
 
 ## Building for Production
 

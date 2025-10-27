@@ -27,34 +27,34 @@ export function Welcome() {
 
 const testRoutes = [
 	{
-		href: "/loader-test",
+		href: "/router-toolkit/loader-test",
 		text: "useDynamicFetcher (Loader)",
 		description:
 			"Test route with data loading functionality using React Router's useFetcher hook",
 	},
 	{
-		href: "/action-test",
+		href: "/router-toolkit/action-test",
 		text: "useDynamicSubmitter (Action)",
 		description:
 			"Test route with form submission and action handling capabilities",
 	},
 	{
-		href: "/form-action-test",
+		href: "/router-toolkit/form-action-test",
 		text: "formAction + useDynamicSubmitter",
 		description: "Form validation with Zod schema and type-safe error handling",
 	},
 	{
-		href: "/submitter-with-loader",
+		href: "/router-toolkit/submitter-with-loader",
 		text: "useDynamicSubmitter + useLoaderData",
 		description: "Form submissions working alongside loader data",
 	},
 	{
-		href: "/fetcher-data-refresh",
+		href: "/router-toolkit/fetcher-data-refresh",
 		text: "useDynamicFetcher (Data Fetching)",
 		description: "Programmatic data fetching from loaders using fetcher.load()",
 	},
 	{
-		href: "/fetcher-invalidation",
+		href: "/router-toolkit/fetcher-invalidation",
 		text: "useDynamicFetcher (Invalidation)",
 		description:
 			"Data invalidation and revalidation with timestamp verification",

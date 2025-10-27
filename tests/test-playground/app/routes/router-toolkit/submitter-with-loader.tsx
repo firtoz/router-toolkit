@@ -1,6 +1,6 @@
 import { type RoutePath, useDynamicSubmitter } from "@firtoz/router-toolkit";
 import { useId } from "react";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { z } from "zod";
 import type { Route } from "./+types/submitter-with-loader";
 
@@ -91,8 +91,8 @@ export function meta() {
 	];
 }
 
-export const route: RoutePath<"/submitter-with-loader"> =
-	"/submitter-with-loader";
+export const route: RoutePath<"/router-toolkit/submitter-with-loader"> =
+	"/router-toolkit/submitter-with-loader";
 
 export const formSchema = z.object({
 	name: z.string().min(1),
@@ -104,11 +104,17 @@ export default function SubmitterWithLoader() {
 	// useDynamicSubmitter for form submissions (POST)
 	const submitter = useDynamicSubmitter<
 		typeof import("./submitter-with-loader")
-	>("/submitter-with-loader");
+	>("/router-toolkit/submitter-with-loader");
 	const nameId = useId();
 	const emailId = useId();
 	return (
 		<div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+			<Link
+				to="/"
+				className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-6 transition-colors"
+			>
+				← Back to Home
+			</Link>
 			<h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
 				Submitter with Loader Test
 			</h1>

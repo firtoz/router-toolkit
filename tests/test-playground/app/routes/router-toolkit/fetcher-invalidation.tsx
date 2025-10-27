@@ -1,6 +1,6 @@
 import { type RoutePath, useDynamicFetcher } from "@firtoz/router-toolkit";
 import { useState } from "react";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import type { Route } from "./+types/fetcher-invalidation";
 
 interface TimeData {
@@ -34,8 +34,8 @@ export function meta() {
 	];
 }
 
-export const route: RoutePath<"/fetcher-invalidation"> =
-	"/fetcher-invalidation";
+export const route: RoutePath<"/router-toolkit/fetcher-invalidation"> =
+	"/router-toolkit/fetcher-invalidation";
 
 export default function FetcherInvalidation() {
 	const initialData = useLoaderData<TimeData>();
@@ -43,7 +43,7 @@ export default function FetcherInvalidation() {
 
 	// useDynamicFetcher for loading fresh data
 	const fetcher = useDynamicFetcher<typeof import("./fetcher-invalidation")>(
-		"/fetcher-invalidation",
+		"/router-toolkit/fetcher-invalidation",
 	);
 
 	const handleLoadData = () => {
@@ -68,6 +68,12 @@ export default function FetcherInvalidation() {
 
 	return (
 		<div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+			<Link
+				to="/"
+				className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-6 transition-colors"
+			>
+				← Back to Home
+			</Link>
 			<h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
 				Fetcher Invalidation Test
 			</h1>

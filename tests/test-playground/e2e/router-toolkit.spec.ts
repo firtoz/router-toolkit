@@ -11,7 +11,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("useDynamicSubmitter & formAction", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/form-action-test");
+		await page.goto("/router-toolkit/form-action-test");
 	});
 
 	test("useDynamicSubmitter should provide type-safe submit state", async ({
@@ -120,7 +120,7 @@ test.describe("useDynamicSubmitter & formAction", () => {
 
 test.describe("useDynamicSubmitter (with loader)", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/submitter-with-loader");
+		await page.goto("/router-toolkit/submitter-with-loader");
 	});
 
 	test("useDynamicSubmitter should work alongside useLoaderData", async ({
@@ -177,7 +177,7 @@ test.describe("useDynamicSubmitter (with loader)", () => {
 
 test.describe("useDynamicFetcher (data fetching)", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/fetcher-data-refresh");
+		await page.goto("/router-toolkit/fetcher-data-refresh");
 	});
 
 	test("useDynamicFetcher should fetch data from loader", async ({ page }) => {
@@ -216,7 +216,7 @@ test.describe("useDynamicFetcher (data fetching)", () => {
 
 test.describe("useDynamicFetcher (invalidation)", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/fetcher-invalidation");
+		await page.goto("/router-toolkit/fetcher-invalidation");
 	});
 
 	test("useDynamicFetcher should invalidate and fetch fresh data", async ({

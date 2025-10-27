@@ -1,4 +1,5 @@
 import { type RoutePath, useDynamicFetcher } from "@firtoz/router-toolkit";
+import { Link } from "react-router";
 
 interface LoaderData {
 	user: {
@@ -31,11 +32,13 @@ export function meta() {
 	];
 }
 
-export const route: RoutePath<"/loader-test"> = "/loader-test";
+export const route: RoutePath<"/router-toolkit/loader-test"> =
+	"/router-toolkit/loader-test";
 
 export default function LoaderTest() {
-	const fetcher =
-		useDynamicFetcher<typeof import("./loader-test")>("/loader-test");
+	const fetcher = useDynamicFetcher<typeof import("./loader-test")>(
+		"/router-toolkit/loader-test",
+	);
 
 	const handleRefresh = () => {
 		fetcher.load();
@@ -43,6 +46,12 @@ export default function LoaderTest() {
 
 	return (
 		<div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+			<Link
+				to="/"
+				className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-6 transition-colors"
+			>
+				← Back to Home
+			</Link>
 			<h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
 				Loader Test
 			</h1>

@@ -5,6 +5,7 @@ import {
 	useDynamicSubmitter,
 } from "@firtoz/router-toolkit";
 import { useId } from "react";
+import { Link } from "react-router";
 import { z } from "zod";
 
 export const formSchema = z.object({
@@ -39,7 +40,8 @@ export const action = formAction({
 	},
 });
 
-export const route: RoutePath<"/form-action-test"> = "/form-action-test";
+export const route: RoutePath<"/router-toolkit/form-action-test"> =
+	"/router-toolkit/form-action-test";
 
 export function meta() {
 	return [
@@ -52,10 +54,9 @@ export function meta() {
 }
 
 export default function FormActionTest() {
-	const submitter =
-		useDynamicSubmitter<typeof import("./form-action-test")>(
-			"/form-action-test",
-		);
+	const submitter = useDynamicSubmitter<typeof import("./form-action-test")>(
+		"/router-toolkit/form-action-test",
+	);
 
 	const nameId = useId();
 	const emailId = useId();
@@ -64,6 +65,12 @@ export default function FormActionTest() {
 
 	return (
 		<div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+			<Link
+				to="/"
+				className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-6 transition-colors"
+			>
+				← Back to Home
+			</Link>
 			<h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
 				Form Action Test
 			</h1>
