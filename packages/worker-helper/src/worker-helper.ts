@@ -1,6 +1,6 @@
 import type { ZodError, ZodType } from "zod/v4";
 
-type MessageTarget = Worker;
+type MessageTarget = DedicatedWorkerGlobalScope;
 
 export type WorkerHelperHandlers<TInput, TOutput> = {
 	handleMessage: (data: TInput) => void | Promise<void>;

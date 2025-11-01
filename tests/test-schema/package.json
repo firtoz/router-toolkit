@@ -1,0 +1,34 @@
+{
+	"name": "test-schema",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./schema": {
+			"types": "./src/schema.ts",
+			"import": "./src/schema.ts",
+			"require": "./src/schema.ts"
+		},
+		"./drizzle/*": {
+			"import": "./drizzle/*",
+			"require": "./drizzle/*"
+		},
+		"./drizzle/migrations": {
+			"types": "./drizzle/migrations.d.ts",
+			"import": "./drizzle/migrations.js",
+			"require": "./drizzle/migrations.js"
+		}
+	},
+	"files": [
+		"src/**/*.ts",
+		"drizzle/**/*"
+	],
+	"scripts": {
+		"db:generate": "bun drizzle-kit generate"
+	},
+	"devDependencies": {
+		"drizzle-kit": "^0.31.5"
+	},
+	"dependencies": {
+		"drizzle-orm": "^0.44.7"
+	}
+}

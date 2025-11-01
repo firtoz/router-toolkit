@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { z } from "zod/v4";
-import { WorkerClient } from "./WorkerClient";
+import { WorkerClient } from "../src/WorkerClient";
 
 // Define test schemas matching our test workers
 const ClientMessageSchema = z.discriminatedUnion("type", [

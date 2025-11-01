@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"target": "ES2020",
-		"lib": ["ES2020", "DOM"],
+		"lib": ["ES2020", "DOM", "WebWorker"],
 		"types": ["bun-types"],
 		"module": "ESNext",
 		"moduleResolution": "bundler",
@@ -24,6 +24,14 @@
 			"@firtoz/router-toolkit": ["./packages/router-toolkit/src"]
 		}
 	},
-	"include": ["packages/*/src/**/*", "scripts/**/*"],
+	"include": [
+		"packages/*/src/**/*",
+		"scripts/**/*",
+		"packages/worker-helper/tests/test-worker-async.worker.ts",
+		"packages/worker-helper/tests/test-worker-invalid-output.worker.ts",
+		"packages/worker-helper/tests/test-worker.worker.ts",
+		"packages/worker-helper/tests/worker-helper.test.ts",
+		"packages/worker-helper/tests/WorkerClient.test.ts"
+	],
 	"exclude": ["node_modules"]
 }

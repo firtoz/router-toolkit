@@ -3,7 +3,15 @@
 		"**/*",
 		"**/.server/**/*",
 		"**/.client/**/*",
-		".react-router/types/**/*"
+		".react-router/types/**/*",
+		"../../packages/drizzle-sqlite-wasm/src/sqlite.worker.ts",
+		"../../packages/drizzle-sqlite-wasm/src/sqlite-worker-schema.ts"
+	],
+	"exclude": ["app/workers/**/*.worker.ts"],
+	"references": [
+		{
+			"path": "./tsconfig.worker.json"
+		}
 	],
 	"compilerOptions": {
 		"lib": ["DOM", "DOM.Iterable", "ES2022"],

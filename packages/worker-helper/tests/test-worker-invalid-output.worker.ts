@@ -1,8 +1,5 @@
 import { z } from "zod/v4";
-import { WorkerHelper } from "./worker-helper";
-
-// Declare self as Worker for TypeScript
-declare var self: Worker;
+import { WorkerHelper } from "../src/worker-helper";
 
 // Define test schemas
 const InputSchema = z.discriminatedUnion("type", [

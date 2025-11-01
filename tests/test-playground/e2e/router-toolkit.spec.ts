@@ -89,7 +89,9 @@ test.describe("useDynamicSubmitter & formAction", () => {
 		await page.getByRole("button", { name: /register/i }).click();
 
 		// Should show handler error from formAction
-		await expect(page.getByText("❌ Registration failed")).toBeVisible();
+		await expect(page.getByText("❌ Registration failed")).toBeVisible({
+			timeout: 5000,
+		});
 		await expect(
 			page.getByText("Error: Admin email is not allowed for registration"),
 		).toBeVisible();

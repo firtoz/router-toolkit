@@ -1,8 +1,5 @@
 import { z } from "zod/v4";
-import { WorkerHelper } from "./worker-helper";
-
-// Declare self as Worker for TypeScript
-declare var self: Worker;
+import { WorkerHelper } from "../src/worker-helper";
 
 // Define test schemas
 const InputSchema = z.discriminatedUnion("type", [
@@ -10,15 +7,6 @@ const InputSchema = z.discriminatedUnion("type", [
 		type: z.literal("add"),
 		a: z.number(),
 		b: z.number(),
-	}),
-	z.object({
-		type: z.literal("multiply"),
-		a: z.number(),
-		b: z.number(),
-	}),
-	z.object({
-		type: z.literal("echo"),
-		message: z.string(),
 	}),
 	z.object({
 		type: z.literal("error"),
@@ -30,14 +18,6 @@ const OutputSchema = z.discriminatedUnion("type", [
 	z.object({
 		type: z.literal("result"),
 		value: z.number(),
-	}),
-	z.object({
-		type: z.literal("echo"),
-		message: z.string(),
-	}),
-	z.object({
-		type: z.literal("error"),
-		message: z.string(),
 	}),
 	z.object({
 		type: z.literal("input-validation-error"),
@@ -59,10 +39,18 @@ const OutputSchema = z.discriminatedUnion("type", [
 type Input = z.infer<typeof InputSchema>;
 type Output = z.infer<typeof OutputSchema>;
 
-class TestWorkerHelper extends WorkerHelper<Input, Output> {
+// Async helper function
+async function simulateAsyncWork(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Create WorkerHelper with async handlers
+class TestWorkerHelperAsync extends WorkerHelper<Input, Output> {
 	constructor() {
 		super(self, InputSchema, OutputSchema, {
-			handleMessage: (data) => {
+			handleMessage: async (data) => {
+				await simulateAsyncWork(500);
+
 				switch (data.type) {
 					case "add":
 						this.send({
@@ -70,44 +58,35 @@ class TestWorkerHelper extends WorkerHelper<Input, Output> {
 							value: data.a + data.b,
 						});
 						break;
-					case "multiply":
-						this.send({
-							type: "result",
-							value: data.a * data.b,
-						});
-						break;
-					case "echo":
-						this.send({
-							type: "echo",
-							message: data.message,
-						});
-						break;
+
 					case "error":
 						if (data.shouldThrow) {
-							throw new Error("Intentional error for testing");
+							throw new Error("Async error for testing");
 						}
-						this.send({
-							type: "error",
-							message: "Error handled without throwing",
-						});
 						break;
 				}
 			},
-			handleInputValidationError: (error, originalData) => {
+
+			handleInputValidationError: async (error, originalData) => {
+				await simulateAsyncWork(500);
 				this.send({
 					type: "input-validation-error",
 					error: `Input validation failed: ${error.message}`,
 					originalData,
 				});
 			},
-			handleOutputValidationError: (error, originalData) => {
+
+			handleOutputValidationError: async (error, originalData) => {
+				await simulateAsyncWork(500);
 				this.send({
 					type: "output-validation-error",
 					error: `Output validation failed: ${error.message}`,
 					attemptedOutput: originalData,
 				});
 			},
-			handleProcessingError: (error, validatedData) => {
+
+			handleProcessingError: async (error, validatedData) => {
+				await simulateAsyncWork(500);
 				const errorMessage =
 					error instanceof Error ? error.message : String(error);
 				this.send({
@@ -120,4 +99,4 @@ class TestWorkerHelper extends WorkerHelper<Input, Output> {
 	}
 }
 
-new TestWorkerHelper();
+new TestWorkerHelperAsync();

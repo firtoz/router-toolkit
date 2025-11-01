@@ -7,6 +7,7 @@ import {
 
 export default [
 	index("routes/home.tsx"),
+	...prefix("sqlite", [route("sqlite-test", "routes/sqlite/sqlite-test.tsx")]),
 	...prefix("router-toolkit", [
 		route("loader-test", "routes/router-toolkit/loader-test.tsx"),
 		route("action-test", "routes/router-toolkit/action-test.tsx"),
