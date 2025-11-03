@@ -17,21 +17,8 @@
 		"skipLibCheck": true,
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"baseUrl": ".",
-		"paths": {
-			"@firtoz/maybe-error": ["./packages/maybe-error/src"],
-			"@firtoz/router-toolkit": ["./packages/router-toolkit/src"]
-		}
+		"forceConsistentCasingInFileNames": true
 	},
-	"include": [
-		"packages/*/src/**/*",
-		"scripts/**/*",
-		"packages/worker-helper/tests/test-worker-async.worker.ts",
-		"packages/worker-helper/tests/test-worker-invalid-output.worker.ts",
-		"packages/worker-helper/tests/test-worker.worker.ts",
-		"packages/worker-helper/tests/worker-helper.test.ts",
-		"packages/worker-helper/tests/WorkerClient.test.ts"
-	],
+	"include": ["packages/*/src/**/*", "packages/*/tests/**/*", "scripts/**/*"],
 	"exclude": ["node_modules"]
 }

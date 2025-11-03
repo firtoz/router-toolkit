@@ -56,11 +56,19 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"@sqlite.org/sqlite-wasm": "^3.50.4-build1",
-		"@firtoz/worker-helper": "workspace:*",
-		"drizzle-orm": "^0.44.7",
 		"@firtoz/maybe-error": "workspace:*",
+		"@firtoz/worker-helper": "workspace:*",
+		"@sqlite.org/sqlite-wasm": "^3.50.4-build1",
+		"@tanstack/db": "^0.4.16",
+		"@tanstack/query-core": "^5.90.6",
+		"@tanstack/query-db-collection": "^0.2.39",
+		"drizzle-orm": "^0.44.7",
+		"drizzle-zod": "^0.8.3",
+		"react": "^19.2.0",
 		"zod": "catalog:"
 	},
-	"devDependencies": {}
+	"devDependencies": {
+		"@standard-schema/spec": "^1.0.0",
+		"@types/react": "^19.2.2"
+	}
 }
