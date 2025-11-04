@@ -59,7 +59,7 @@
 		"@firtoz/maybe-error": "workspace:*",
 		"@firtoz/worker-helper": "workspace:*",
 		"@sqlite.org/sqlite-wasm": "^3.50.4-build1",
-		"@tanstack/db": "^0.4.16",
+		"@tanstack/db": "catalog:",
 		"@tanstack/query-core": "^5.90.6",
 		"@tanstack/query-db-collection": "^0.2.39",
 		"drizzle-orm": "^0.44.7",

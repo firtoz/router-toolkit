@@ -1,5 +1,5 @@
 import { exhaustiveGuard } from "@firtoz/maybe-error";
-import { WorkerClient } from "packages/worker-helper/src";
+import { WorkerClient } from "@firtoz/worker-helper/WorkerClient";
 import {
 	type SqliteWorkerClientMessage,
 	type SqliteWorkerServerMessage,

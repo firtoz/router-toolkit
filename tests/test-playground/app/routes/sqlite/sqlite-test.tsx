@@ -6,6 +6,8 @@ import * as schema from "test-schema/schema";
 import migrations from "test-schema/drizzle/migrations";
 import { migrate } from "@firtoz/drizzle-sqlite-wasm/sqlite-wasm-migrator";
 import { drizzleSqliteWasmWorker } from "@firtoz/drizzle-sqlite-wasm/drizzle-sqlite-wasm-worker";
+import { drizzleCollectionOptions } from "@firtoz/drizzle-sqlite-wasm/drizzleCollectionOptions";
+import { createCollection } from "@tanstack/db";
 
 const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
 	const sqliteClient = useMemo(
@@ -35,7 +37,9 @@ const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
 				await drizzle
 					.insert(schema.todoTable)
 					.values({
+						id: "1",
 						title: "Buy groceries",
+						completed: false,
 					})
 					.execute();
 
@@ -48,6 +52,15 @@ const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
 			console.log(
 				`[${new Date().toISOString()}] [SqliteClientWrapper] todos`,
 				todos,
+			);
+
+			const tanstackTodos = createCollection(
+				drizzleCollectionOptions({ drizzle, tableName: "todoTable" }),
+			);
+
+			console.log(
+				`[${new Date().toISOString()}] [SqliteClientWrapper] tanstackTodos`,
+				tanstackTodos.toArray,
 			);
 		});
 

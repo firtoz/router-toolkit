@@ -30,6 +30,7 @@
 		"react": "catalog:",
 		"react-dom": "^19.2.0",
 		"react-router": "catalog:",
+		"@tanstack/db": "catalog:",
 		"zod": "catalog:",
 		"zod-form-data": "^3.0.1"
 	},

@@ -1,12 +1,9 @@
-import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { syncableTable } from "@firtoz/drizzle-sqlite-wasm";
+import { integer, text } from "drizzle-orm/sqlite-core";
 
-export const todoTable = sqliteTable("todo", {
-	id: integer("id").primaryKey(),
+export const todoTable = syncableTable("todo", {
 	title: text("title").notNull(),
-	completed: integer("completed").notNull().default(0),
-	createdAt: integer("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-	updatedAt: integer("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+	completed: integer("completed", { mode: "boolean" }).notNull().default(false),
 });
 
 export type Todo = typeof todoTable.$inferSelect;

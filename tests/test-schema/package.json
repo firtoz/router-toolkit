@@ -29,6 +29,7 @@
 		"drizzle-kit": "^0.31.5"
 	},
 	"dependencies": {
-		"drizzle-orm": "^0.44.7"
+		"drizzle-orm": "^0.44.7",
+		"@firtoz/drizzle-sqlite-wasm": "workspace:*"
 	}
 }
