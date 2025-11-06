@@ -1,14 +1,9 @@
 import type { RoutePath } from "@firtoz/router-toolkit";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { SqliteWorkerClient } from "@firtoz/drizzle-sqlite-wasm";
-import SqliteWorker from "../../workers/sqlite.worker?worker";
+import { useCallback, useEffect, useState } from "react";
+import { useDrizzle } from "@firtoz/drizzle-sqlite-wasm";
+import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 import * as schema from "test-schema/schema";
 import migrations from "test-schema/drizzle/migrations";
-import {
-	migrate,
-	type DurableSqliteMigrationConfig,
-} from "@firtoz/drizzle-sqlite-wasm/sqlite-wasm-migrator";
-import { drizzleSqliteWasmWorker } from "@firtoz/drizzle-sqlite-wasm/drizzle-sqlite-wasm-worker";
 import { useDrizzleCollection } from "@firtoz/drizzle-sqlite-wasm/drizzleCollectionOptions";
 import { useLiveQuery } from "@tanstack/react-db";
 
@@ -98,34 +93,6 @@ const TodoItem = ({ todo, onToggleComplete, onDelete }: TodoItemProps) => {
 			</div>
 		</div>
 	);
-};
-
-const useDrizzle = <TSchema extends Record<string, unknown>>(
-	WorkerConstructor: new () => Worker,
-	dbName: string,
-	schema: TSchema,
-	migrations: DurableSqliteMigrationConfig,
-) => {
-	const sqliteClient = useMemo(
-		() => new SqliteWorkerClient(new WorkerConstructor(), dbName),
-		[],
-	);
-
-	const drizzle = useMemo(() => {
-		return drizzleSqliteWasmWorker<TSchema>(sqliteClient, { schema });
-	}, [sqliteClient, schema]);
-
-	useEffect(() => {
-		sqliteClient.onStarted(async () => {
-			await migrate(drizzle, migrations);
-		});
-
-		return () => {
-			sqliteClient.terminate();
-		};
-	}, [sqliteClient, drizzle]);
-
-	return { drizzle };
 };
 
 const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
