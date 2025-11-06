@@ -1,1 +1,1 @@
-import "@firtoz/drizzle-sqlite-wasm/sqlite.worker";
+import "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker";
