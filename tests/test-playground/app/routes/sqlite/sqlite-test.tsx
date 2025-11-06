@@ -4,20 +4,15 @@ import { SqliteWorkerClient } from "@firtoz/drizzle-sqlite-wasm";
 import SqliteWorker from "../../workers/sqlite.worker?worker";
 import * as schema from "test-schema/schema";
 import migrations from "test-schema/drizzle/migrations";
-import { migrate } from "@firtoz/drizzle-sqlite-wasm/sqlite-wasm-migrator";
+import {
+	migrate,
+	type DurableSqliteMigrationConfig,
+} from "@firtoz/drizzle-sqlite-wasm/sqlite-wasm-migrator";
 import { drizzleSqliteWasmWorker } from "@firtoz/drizzle-sqlite-wasm/drizzle-sqlite-wasm-worker";
-import { drizzleCollectionOptions } from "@firtoz/drizzle-sqlite-wasm/drizzleCollectionOptions";
-import { createCollection } from "@tanstack/db";
+import { useDrizzleCollection } from "@firtoz/drizzle-sqlite-wasm/drizzleCollectionOptions";
 import { useLiveQuery } from "@tanstack/react-db";
 
-interface Todo {
-	id: string;
-	title: string;
-	completed: boolean;
-	createdAt: Date;
-	updatedAt: Date;
-	deletedAt: Date | null;
-}
+type Todo = typeof schema.todoTable.$inferSelect;
 
 interface TodoItemProps {
 	todo: Todo;
@@ -105,65 +100,24 @@ const TodoItem = ({ todo, onToggleComplete, onDelete }: TodoItemProps) => {
 	);
 };
 
-const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
+const useDrizzle = <TSchema extends Record<string, unknown>>(
+	WorkerConstructor: new () => Worker,
+	dbName: string,
+	schema: TSchema,
+	migrations: DurableSqliteMigrationConfig,
+) => {
 	const sqliteClient = useMemo(
-		() => new SqliteWorkerClient(new SqliteWorker(), dbName),
+		() => new SqliteWorkerClient(new WorkerConstructor(), dbName),
 		[],
 	);
 
 	const drizzle = useMemo(() => {
-		return drizzleSqliteWasmWorker(sqliteClient, { schema });
-	}, [sqliteClient]);
-
-	const tanstackTodos = useMemo(() => {
-		const tanstackTodos = createCollection(
-			drizzleCollectionOptions({ drizzle, tableName: "todoTable" }),
-		);
-
-		return tanstackTodos;
-	}, [drizzle]);
+		return drizzleSqliteWasmWorker<TSchema>(sqliteClient, { schema });
+	}, [sqliteClient, schema]);
 
 	useEffect(() => {
 		sqliteClient.onStarted(async () => {
-			console.log(
-				`[${new Date().toISOString()}] [SqliteClientWrapper] started`,
-			);
-
-			await migrate(drizzle, migrations, true);
-
-			let todos = await drizzle.query.todoTable.findMany();
-			console.log(
-				`[${new Date().toISOString()}] [SqliteClientWrapper] todos`,
-				todos,
-			);
-
-			if (todos.length === 0) {
-				console.log(
-					`[${new Date().toISOString()}] [SqliteClientWrapper] no todos found, inserting one`,
-				);
-				await drizzle
-					.insert(schema.todoTable)
-					.values({
-						id: "1",
-						title: "Buy groceries",
-						completed: false,
-					})
-					.execute();
-
-				console.log(
-					`[${new Date().toISOString()}] [SqliteClientWrapper] todo inserted`,
-				);
-			}
-
-			todos = await drizzle.query.todoTable.findMany();
-			console.log(
-				`[${new Date().toISOString()}] [SqliteClientWrapper] todos`,
-				todos,
-			);
-
-			console.log("--------------------------------");
-			console.log("--------------------------------");
-			console.log("--------------------------------");
+			await migrate(drizzle, migrations);
 		});
 
 		return () => {
@@ -171,10 +125,20 @@ const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
 		};
 	}, [sqliteClient, drizzle]);
 
+	return { drizzle };
+};
+
+const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
+	const { drizzle } = useDrizzle(SqliteWorker, dbName, schema, migrations);
+
+	const todoCollection = useDrizzleCollection({
+		drizzle,
+		tableName: "todoTable",
+	});
+
 	const { data: todos } = useLiveQuery((q) =>
 		q
-			.from({ todo: tanstackTodos })
-			// .where(({ todo }) => eq(todo.completed, false))
+			.from({ todo: todoCollection })
 			.orderBy(({ todo }) => todo.createdAt, "asc"),
 	);
 
@@ -183,7 +147,7 @@ const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
 	const handleAddTodo = useCallback(() => {
 		const trimmedTodo = newTodo.trim();
 		if (trimmedTodo) {
-			tanstackTodos.insert({
+			todoCollection.insert({
 				id: crypto.randomUUID(),
 				title: trimmedTodo,
 				completed: false,
@@ -193,11 +157,11 @@ const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
 			});
 			setNewTodo("");
 		}
-	}, [newTodo, tanstackTodos]);
+	}, [newTodo, todoCollection]);
 
 	const handleToggleComplete = useCallback(
 		(id: string) => {
-			const tx = tanstackTodos.update(id, (draft) => {
+			const tx = todoCollection.update(id, (draft) => {
 				draft.completed = !draft.completed;
 			});
 
@@ -215,14 +179,14 @@ const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
 				},
 			);
 		},
-		[tanstackTodos],
+		[todoCollection],
 	);
 
 	const handleDeleteTodo = useCallback(
 		(id: string) => {
-			tanstackTodos.delete(id);
+			todoCollection.delete(id);
 		},
-		[tanstackTodos],
+		[todoCollection],
 	);
 
 	return (

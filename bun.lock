@@ -124,6 +124,7 @@
         "@sqlite.org/sqlite-wasm": "^3.50.4-build1",
         "@tanstack/db": "catalog:",
         "@tanstack/react-db": "^0.1.40",
+        "drizzle-orm": "^0.44.7",
         "isbot": "^5.1.31",
         "react": "catalog:",
         "react-dom": "^19.2.0",

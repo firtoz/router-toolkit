@@ -12,6 +12,21 @@
 			"import": "./src/index.ts",
 			"require": "./src/index.ts"
 		},
+		"./drizzle-sqlite-wasm-worker": {
+			"types": "./src/drizzle/worker.ts",
+			"import": "./src/drizzle/worker.ts",
+			"require": "./src/drizzle/worker.ts"
+		},
+		"./sqlite-wasm-migrator": {
+			"types": "./src/migration/migrator.ts",
+			"import": "./src/migration/migrator.ts",
+			"require": "./src/migration/migrator.ts"
+		},
+		"./drizzleCollectionOptions": {
+			"types": "./src/collections/drizzle-collection.ts",
+			"import": "./src/collections/drizzle-collection.ts",
+			"require": "./src/collections/drizzle-collection.ts"
+		},
 		"./*": {
 			"types": "./src/*.ts",
 			"import": "./src/*.ts",

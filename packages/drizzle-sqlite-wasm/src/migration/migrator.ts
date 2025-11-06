@@ -4,18 +4,16 @@
 import { sql } from "drizzle-orm";
 import type { MigrationMeta } from "drizzle-orm/migrator";
 import type { SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
+import type { migrate as durableSqliteMigrate } from "drizzle-orm/durable-sqlite/migrator";
 
-interface MigrationConfig {
-	journal: {
-		entries: { idx: number; when: number; tag: string; breakpoints: boolean }[];
-	};
-	migrations: Record<string, string>;
-}
+export type DurableSqliteMigrationConfig = Parameters<
+	typeof durableSqliteMigrate
+>[1];
 
 function readMigrationFiles({
 	journal,
 	migrations,
-}: MigrationConfig): MigrationMeta[] {
+}: DurableSqliteMigrationConfig): MigrationMeta[] {
 	const migrationQueries: MigrationMeta[] = [];
 
 	for (const journalEntry of journal.entries) {
@@ -47,7 +45,7 @@ function readMigrationFiles({
 
 export async function migrate<TSchema extends Record<string, unknown>>(
 	db: SqliteRemoteDatabase<TSchema>,
-	config: MigrationConfig,
+	config: DurableSqliteMigrationConfig,
 	debug: boolean = false,
 ): Promise<void> {
 	if (debug) {

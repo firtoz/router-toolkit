@@ -1,6 +1,10 @@
 // const selectSchema = createSelectSchema(todoTable);
 
-import type { CollectionConfig, InferSchemaOutput } from "@tanstack/db";
+import {
+	createCollection,
+	type CollectionConfig,
+	type InferSchemaOutput,
+} from "@tanstack/db";
 import { eq, sql, type BuildColumns, type Table } from "drizzle-orm";
 import {
 	integer,
@@ -11,9 +15,11 @@ import {
 	type TableConfig,
 	type SQLiteInsertValue,
 	type SQLiteUpdateSetSource,
+	type BaseSQLiteDatabase,
 } from "drizzle-orm/sqlite-core";
-import type { SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
+// import type { SqliteRemoteDatabase, SqliteRemoteResult } from "drizzle-orm/sqlite-proxy";
 import { type BuildSchema, createSelectSchema } from "drizzle-zod";
+import { useMemo } from "react";
 
 export const idColumn = text("id").primaryKey();
 export const createdAtColumn = integer("createdAt", { mode: "timestamp" })
@@ -77,12 +83,17 @@ export type InsertSchema<TTable extends Table> = BuildSchema<
 	undefined
 >;
 
-type DrizzleSchema<
-	TDrizzle extends SqliteRemoteDatabase<Record<string, unknown>>,
-> = TDrizzle["_"]["fullSchema"];
+type AnyDrizzleDatabase = BaseSQLiteDatabase<
+	"async",
+	any,
+	Record<string, unknown>
+>;
+
+export type DrizzleSchema<TDrizzle extends AnyDrizzleDatabase> =
+	TDrizzle["_"]["fullSchema"];
 
 interface DrizzleCollectionConfig<
-	TDrizzle extends SqliteRemoteDatabase<Record<string, unknown>>,
+	TDrizzle extends AnyDrizzleDatabase,
 	TTableName extends ValidTableNames<DrizzleSchema<TDrizzle>>,
 > {
 	drizzle: TDrizzle;
@@ -98,21 +109,13 @@ export type ValidTableNames<TSchema extends Record<string, unknown>> = {
 }[keyof TSchema];
 
 export function drizzleCollectionOptions<
-	const TDrizzle extends SqliteRemoteDatabase<Record<string, unknown>>,
+	const TDrizzle extends AnyDrizzleDatabase,
 	const TTableName extends string & ValidTableNames<DrizzleSchema<TDrizzle>>,
 	TTable extends DrizzleSchema<TDrizzle>[TTableName] & TableWithRequiredFields,
->(
-	config: DrizzleCollectionConfig<TDrizzle, TTableName>,
-): CollectionConfig<
-	InferSchemaOutput<SelectSchema<TTable>>,
-	string | number,
-	SelectSchema<TTable>
-> & {
-	schema: SelectSchema<TTable>;
-} {
+>(config: DrizzleCollectionConfig<TDrizzle, TTableName>) {
 	type CollectionType = CollectionConfig<
 		InferSchemaOutput<SelectSchema<TTable>>,
-		string | number,
+		string,
 		SelectSchema<TTable>
 	>;
 
@@ -127,12 +130,12 @@ export function drizzleCollectionOptions<
 
 	return {
 		schema: createSelectSchema(table),
-		getKey: (item) => {
+		getKey: (item: InferSchemaOutput<SelectSchema<TTable>>) => {
 			const id = (item as { id: string }).id;
 			return id;
 		},
 		sync: {
-			sync: (params) => {
+			sync: (params: Parameters<CollectionType["sync"]["sync"]>[0]) => {
 				const { begin, write, commit, markReady } = params;
 
 				const initialSync = async () => {
@@ -320,20 +323,42 @@ export function drizzleCollectionOptions<
 				};
 			},
 		},
-		onInsert: async (params) => {
+		onInsert: async (
+			params: Parameters<NonNullable<CollectionType["onInsert"]>>[0],
+		) => {
 			console.log("onInsert", params);
 
 			await insertListener?.(params);
 		},
-		onUpdate: async (params) => {
+		onUpdate: async (
+			params: Parameters<NonNullable<CollectionType["onUpdate"]>>[0],
+		) => {
 			console.log("onUpdate", params);
 
 			await updateListener?.(params);
 		},
-		onDelete: async (params) => {
+		onDelete: async (
+			params: Parameters<NonNullable<CollectionType["onDelete"]>>[0],
+		) => {
 			console.log("onDelete", params);
 
 			await deleteListener?.(params);
 		},
 	};
 }
+
+export const useDrizzleCollection = <
+	const TDrizzle extends AnyDrizzleDatabase,
+	const TTableName extends string & ValidTableNames<DrizzleSchema<TDrizzle>>,
+>(
+	config: DrizzleCollectionConfig<TDrizzle, TTableName>,
+) => {
+	return useMemo(() => {
+		return createCollection(
+			drizzleCollectionOptions({
+				drizzle: config.drizzle,
+				tableName: config.tableName,
+			}),
+		);
+	}, [config.drizzle, config.tableName]);
+};

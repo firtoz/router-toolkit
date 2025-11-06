@@ -1,7 +1,7 @@
 import type { DrizzleConfig } from "drizzle-orm";
 import { drizzle as drizzleSqliteProxy } from "drizzle-orm/sqlite-proxy";
-import type { SqliteWorkerClient } from "./sqlite-worker-client";
-import { RemoteCallbackIdSchema } from "./sqlite-worker-schema";
+import type { SqliteWorkerClient } from "../worker/client";
+import { RemoteCallbackIdSchema } from "../worker/schema";
 
 export const drizzleSqliteWasmWorker = <
 	TSchema extends Record<string, unknown> = Record<string, never>,

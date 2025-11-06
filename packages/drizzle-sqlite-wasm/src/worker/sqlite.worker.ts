@@ -11,8 +11,8 @@ import {
 	SqliteWorkerServerMessageType,
 	type SqliteWorkerClientMessage,
 	type SqliteWorkerServerMessage,
-} from "../sqlite-worker-schema";
-import { handleRemoteCallback } from "../handle-remote-callback";
+} from "./schema";
+import { handleRemoteCallback } from "../drizzle/handle-callback";
 import { exhaustiveGuard } from "@firtoz/maybe-error";
 
 // Declare self as DedicatedWorkerGlobalScope for TypeScript

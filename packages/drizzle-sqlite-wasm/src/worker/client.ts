@@ -10,7 +10,7 @@ import {
 	SqliteWorkerClientMessageType,
 	type SqliteWorkerRemoteCallbackClientMessage,
 	RemoteCallbackIdSchema,
-} from "./sqlite-worker-schema";
+} from "./schema";
 
 export class SqliteWorkerClient extends WorkerClient<
 	SqliteWorkerClientMessage,
@@ -29,6 +29,7 @@ export class SqliteWorkerClient extends WorkerClient<
 	constructor(
 		worker: Worker,
 		private readonly dbName: string,
+		private readonly debug: boolean = false,
 	) {
 		super({
 			worker,
@@ -51,7 +52,9 @@ export class SqliteWorkerClient extends WorkerClient<
 		switch (type) {
 			case SqliteWorkerServerMessageType.Ready:
 				{
-					console.log("[SqliteWorkerClient] ready");
+					if (this.debug) {
+						console.log("[SqliteWorkerClient] ready");
+					}
 					this.send({
 						type: SqliteWorkerClientMessageType.Start,
 						dbName: this.dbName,
@@ -59,14 +62,13 @@ export class SqliteWorkerClient extends WorkerClient<
 				}
 				break;
 			case SqliteWorkerServerMessageType.Started:
-				{
+				if (this.debug) {
 					console.log("[SqliteWorkerClient] started");
+					console.log(
+						"[SqliteWorkerClient] calling on started callback",
+						this.onStartedCallback,
+					);
 				}
-
-				console.log(
-					"[SqliteWorkerClient] calling on started callback",
-					this.onStartedCallback,
-				);
 
 				this.onStartedCallback?.();
 				break;
@@ -100,15 +102,19 @@ export class SqliteWorkerClient extends WorkerClient<
 		resolve: (value: { rows: unknown[] }) => void,
 		reject: (error: Error) => void,
 	) {
-		console.log(
-			`[${new Date().toISOString()}] [SqliteWorkerClient] performing remote callback`,
-			data,
-		);
+		if (this.debug) {
+			console.log(
+				`[${new Date().toISOString()}] [SqliteWorkerClient] performing remote callback`,
+				data,
+			);
+		}
 		const id = RemoteCallbackIdSchema.parse(crypto.randomUUID());
-		console.log(
-			`[${new Date().toISOString()}] [SqliteWorkerClient] remote callback id`,
-			id,
-		);
+		if (this.debug) {
+			console.log(
+				`[${new Date().toISOString()}] [SqliteWorkerClient] remote callback id`,
+				id,
+			);
+		}
 		this.remoteCallbacks.set(id, { resolve, reject });
 		this.send({
 			type: SqliteWorkerClientMessageType.RemoteCallbackRequest,
@@ -120,7 +126,12 @@ export class SqliteWorkerClient extends WorkerClient<
 	}
 
 	public onStarted(callback: () => void) {
-		console.log("[SqliteWorkerClient] on started callback", callback);
+		if (this.debug) {
+			console.log(
+				`[${new Date().toISOString()}] [SqliteWorkerClient] on started callback`,
+				callback,
+			);
+		}
 		this.onStartedCallback = callback;
 	}
 

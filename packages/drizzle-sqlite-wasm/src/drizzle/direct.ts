@@ -1,7 +1,7 @@
 import type { Database } from "@sqlite.org/sqlite-wasm";
 import type { DrizzleConfig } from "drizzle-orm";
 import { drizzle as drizzleSqliteProxy } from "drizzle-orm/sqlite-proxy";
-import { handleRemoteCallback } from "./handle-remote-callback";
+import { handleRemoteCallback } from "./handle-callback";
 
 export const drizzleSqliteWasm = <
 	TSchema extends Record<string, unknown> = Record<string, never>,
