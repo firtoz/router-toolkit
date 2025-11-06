@@ -1,10 +1,6 @@
 // const selectSchema = createSelectSchema(todoTable);
 
-import {
-	createCollection,
-	type CollectionConfig,
-	type InferSchemaOutput,
-} from "@tanstack/db";
+import type { CollectionConfig, InferSchemaOutput } from "@tanstack/db";
 import { eq, sql, type BuildColumns, type Table } from "drizzle-orm";
 import {
 	integer,
@@ -17,9 +13,7 @@ import {
 	type SQLiteUpdateSetSource,
 	type BaseSQLiteDatabase,
 } from "drizzle-orm/sqlite-core";
-// import type { SqliteRemoteDatabase, SqliteRemoteResult } from "drizzle-orm/sqlite-proxy";
 import { type BuildSchema, createSelectSchema } from "drizzle-zod";
-import { useMemo } from "react";
 
 export const idColumn = text("id").primaryKey();
 export const createdAtColumn = integer("createdAt", { mode: "timestamp" })
@@ -83,8 +77,9 @@ export type InsertSchema<TTable extends Table> = BuildSchema<
 	undefined
 >;
 
-type AnyDrizzleDatabase = BaseSQLiteDatabase<
+export type AnyDrizzleDatabase = BaseSQLiteDatabase<
 	"async",
+	// biome-ignore lint/suspicious/noExplicitAny: We really want to use any here.
 	any,
 	Record<string, unknown>
 >;
@@ -92,7 +87,7 @@ type AnyDrizzleDatabase = BaseSQLiteDatabase<
 export type DrizzleSchema<TDrizzle extends AnyDrizzleDatabase> =
 	TDrizzle["_"]["fullSchema"];
 
-interface DrizzleCollectionConfig<
+export interface DrizzleCollectionConfig<
 	TDrizzle extends AnyDrizzleDatabase,
 	TTableName extends ValidTableNames<DrizzleSchema<TDrizzle>>,
 > {
@@ -346,19 +341,3 @@ export function drizzleCollectionOptions<
 		},
 	};
 }
-
-export const useDrizzleCollection = <
-	const TDrizzle extends AnyDrizzleDatabase,
-	const TTableName extends string & ValidTableNames<DrizzleSchema<TDrizzle>>,
->(
-	config: DrizzleCollectionConfig<TDrizzle, TTableName>,
-) => {
-	return useMemo(() => {
-		return createCollection(
-			drizzleCollectionOptions({
-				drizzle: config.drizzle,
-				tableName: config.tableName,
-			}),
-		);
-	}, [config.drizzle, config.tableName]);
-};

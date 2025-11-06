@@ -1,10 +1,12 @@
 import type { RoutePath } from "@firtoz/router-toolkit";
 import { useCallback, useEffect, useState } from "react";
-import { useDrizzle } from "@firtoz/drizzle-sqlite-wasm";
+import {
+	DrizzleProvider,
+	useDrizzleContext,
+} from "@firtoz/drizzle-sqlite-wasm";
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 import * as schema from "test-schema/schema";
 import migrations from "test-schema/drizzle/migrations";
-import { useDrizzleCollection } from "@firtoz/drizzle-sqlite-wasm/drizzleCollectionOptions";
 import { useLiveQuery } from "@tanstack/react-db";
 
 type Todo = typeof schema.todoTable.$inferSelect;
@@ -95,13 +97,10 @@ const TodoItem = ({ todo, onToggleComplete, onDelete }: TodoItemProps) => {
 	);
 };
 
-const SqliteClientWrapper = ({ dbName }: { dbName: string }) => {
-	const { drizzle } = useDrizzle(SqliteWorker, dbName, schema, migrations);
+const TodoList = () => {
+	const { useCollection } = useDrizzleContext<typeof schema>();
 
-	const todoCollection = useDrizzleCollection({
-		drizzle,
-		tableName: "todoTable",
-	});
+	const todoCollection = useCollection("todoTable");
 
 	const { data: todos } = useLiveQuery((q) =>
 		q
@@ -214,7 +213,16 @@ export default function SqliteTest() {
 		return <div>Loading...</div>;
 	}
 
-	return <SqliteClientWrapper dbName="test.db" />;
+	return (
+		<DrizzleProvider
+			worker={SqliteWorker}
+			dbName="test.db"
+			schema={schema}
+			migrations={migrations}
+		>
+			<TodoList />
+		</DrizzleProvider>
+	);
 }
 
 export const route: RoutePath<"/sqlite/sqlite-test"> = "/sqlite/sqlite-test";
