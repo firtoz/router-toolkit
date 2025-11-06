@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "cd4b9f41-ad55-4d86-b74c-6faf25f68c73",
-  "prevId": "567aafd5-7a0b-46c0-a405-efc6d20ed94f",
+  "id": "8cc451db-e592-4d6a-ad2b-b646616f81b5",
+  "prevId": "cc56923a-2f0e-4b31-8a0b-eef847b9daab",
   "tables": {
     "todo": {
       "name": "todo",
@@ -20,7 +20,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "(current_timestamp)"
         },
         "updatedAt": {
           "name": "updatedAt",
@@ -28,7 +28,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "(current_timestamp)"
         },
         "deletedAt": {
           "name": "deletedAt",
@@ -66,10 +66,7 @@
   "_meta": {
     "schemas": {},
     "tables": {},
-    "columns": {
-      "\"todo\".\"created_at\"": "\"todo\".\"createdAt\"",
-      "\"todo\".\"updated_at\"": "\"todo\".\"updatedAt\""
-    }
+    "columns": {}
   },
   "internal": {
     "indexes": {}

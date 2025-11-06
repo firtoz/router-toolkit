@@ -1,6 +1,6 @@
 import journal from './meta/_journal.json';
-import m0000 from './0000_workable_vision.sql';
-import m0001 from './0001_mature_leper_queen.sql';
+import m0000 from './0000_funny_penance.sql';
+import m0001 from './0001_certain_supreme_intelligence.sql';
 
   export default {
     journal,

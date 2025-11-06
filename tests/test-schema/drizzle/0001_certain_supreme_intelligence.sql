@@ -1,8 +1,8 @@
 PRAGMA foreign_keys=OFF;--> statement-breakpoint
 CREATE TABLE `__new_todo` (
 	`id` text PRIMARY KEY NOT NULL,
-	`createdAt` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	`updatedAt` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`createdAt` integer DEFAULT (current_timestamp) NOT NULL,
+	`updatedAt` integer DEFAULT (current_timestamp) NOT NULL,
 	`deletedAt` integer DEFAULT NULL,
 	`title` text NOT NULL,
 	`completed` integer DEFAULT false NOT NULL
