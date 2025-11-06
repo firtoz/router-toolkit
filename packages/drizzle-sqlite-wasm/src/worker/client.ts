@@ -4,12 +4,15 @@ import {
 	type SqliteWorkerClientMessage,
 	type SqliteWorkerServerMessage,
 	type RemoteCallbackId,
+	type DbId,
+	type StartRequestId,
 	SqliteWorkerClientMessageSchema,
 	sqliteWorkerServerMessage,
 	SqliteWorkerServerMessageType,
 	SqliteWorkerClientMessageType,
 	type SqliteWorkerRemoteCallbackClientMessage,
 	RemoteCallbackIdSchema,
+	StartRequestIdSchema,
 } from "./schema";
 
 export class SqliteWorkerClient extends WorkerClient<
@@ -24,6 +27,8 @@ export class SqliteWorkerClient extends WorkerClient<
 		}
 	>();
 
+	private dbId: DbId | null = null;
+	private startRequestId: StartRequestId | null = null;
 	private onStartedCallback?: () => void;
 
 	constructor(
@@ -53,24 +58,43 @@ export class SqliteWorkerClient extends WorkerClient<
 			case SqliteWorkerServerMessageType.Ready:
 				{
 					if (this.debug) {
-						console.log("[SqliteWorkerClient] ready");
+						console.log("[SqliteWorkerClient] ready - sending prepare");
 					}
+					// First, request preparation (diagnostics)
+					this.send({
+						type: SqliteWorkerClientMessageType.Prepare,
+					});
+				}
+				break;
+			case SqliteWorkerServerMessageType.Prepared:
+				{
+					if (this.debug) {
+						console.log("[SqliteWorkerClient] prepared - starting database");
+					}
+					// Now start this specific database
+					this.startRequestId = StartRequestIdSchema.parse(crypto.randomUUID());
 					this.send({
 						type: SqliteWorkerClientMessageType.Start,
+						requestId: this.startRequestId,
 						dbName: this.dbName,
 					});
 				}
 				break;
 			case SqliteWorkerServerMessageType.Started:
-				if (this.debug) {
-					console.log("[SqliteWorkerClient] started");
-					console.log(
-						"[SqliteWorkerClient] calling on started callback",
-						this.onStartedCallback,
-					);
+				{
+					// Check if this is our start request
+					if (message.requestId === this.startRequestId) {
+						this.dbId = message.dbId;
+						if (this.debug) {
+							console.log("[SqliteWorkerClient] started with dbId:", this.dbId);
+							console.log(
+								"[SqliteWorkerClient] calling on started callback",
+								this.onStartedCallback,
+							);
+						}
+						this.onStartedCallback?.();
+					}
 				}
-
-				this.onStartedCallback?.();
 				break;
 			case SqliteWorkerServerMessageType.RemoteCallbackResponse:
 				{
@@ -98,10 +122,15 @@ export class SqliteWorkerClient extends WorkerClient<
 	}
 
 	public performRemoteCallback(
-		data: Omit<SqliteWorkerRemoteCallbackClientMessage, "type" | "id">,
+		data: Omit<SqliteWorkerRemoteCallbackClientMessage, "type" | "id" | "dbId">,
 		resolve: (value: { rows: unknown[] }) => void,
 		reject: (error: Error) => void,
 	) {
+		if (!this.dbId) {
+			reject(new Error("Database not started - dbId is null"));
+			return;
+		}
+
 		if (this.debug) {
 			console.log(
 				`[${new Date().toISOString()}] [SqliteWorkerClient] performing remote callback`,
@@ -119,6 +148,7 @@ export class SqliteWorkerClient extends WorkerClient<
 		this.send({
 			type: SqliteWorkerClientMessageType.RemoteCallbackRequest,
 			id,
+			dbId: this.dbId,
 			sql: data.sql,
 			params: data.params,
 			method: data.method,

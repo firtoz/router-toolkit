@@ -3,13 +3,21 @@ import z from "zod";
 export const RemoteCallbackIdSchema = z.string().brand("remote-callback-id");
 export type RemoteCallbackId = z.infer<typeof RemoteCallbackIdSchema>;
 
+export const DbIdSchema = z.string().brand("db-id");
+export type DbId = z.infer<typeof DbIdSchema>;
+
+export const StartRequestIdSchema = z.string().brand("start-request-id");
+export type StartRequestId = z.infer<typeof StartRequestIdSchema>;
+
 export enum SqliteWorkerClientMessageType {
+	Prepare = "prepare",
 	Start = "start",
 	RemoteCallbackRequest = "remote-callback-request",
 }
 
 export enum SqliteWorkerServerMessageType {
 	Ready = "ready",
+	Prepared = "prepared",
 	Started = "started",
 	RemoteCallbackResponse = "remote-callback-response",
 	RemoteCallbackError = "remote-callback-error",
@@ -20,6 +28,7 @@ export const RemoteCallbackRequestSchema = z.object({
 	// AsyncRemoteCallback
 	// sql: string, params: any[], method: 'run' | 'all' | 'values' | 'get'
 	id: RemoteCallbackIdSchema,
+	dbId: DbIdSchema,
 	sql: z.string(),
 	params: z.array(z.any()),
 	method: z.enum(["run", "all", "values", "get"]),
@@ -31,7 +40,11 @@ export type SqliteWorkerRemoteCallbackClientMessage = z.infer<
 
 export const SqliteWorkerClientMessageSchema = z.discriminatedUnion("type", [
 	z.object({
+		type: z.literal(SqliteWorkerClientMessageType.Prepare),
+	}),
+	z.object({
 		type: z.literal(SqliteWorkerClientMessageType.Start),
+		requestId: StartRequestIdSchema,
 		dbName: z.string(),
 	}),
 	RemoteCallbackRequestSchema,
@@ -54,7 +67,12 @@ export const sqliteWorkerServerMessage = z.discriminatedUnion("type", [
 		type: z.literal(SqliteWorkerServerMessageType.Ready),
 	}),
 	z.object({
+		type: z.literal(SqliteWorkerServerMessageType.Prepared),
+	}),
+	z.object({
 		type: z.literal(SqliteWorkerServerMessageType.Started),
+		requestId: StartRequestIdSchema,
+		dbId: DbIdSchema,
 	}),
 	RemoteCallbackResponseSchema,
 	RemoteCallbackErrorServerMessageSchema,

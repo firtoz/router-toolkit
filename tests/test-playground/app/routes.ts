@@ -7,7 +7,11 @@ import {
 
 export default [
 	index("routes/home.tsx"),
-	...prefix("sqlite", [route("sqlite-test", "routes/sqlite/sqlite-test.tsx")]),
+	route("api/clear-opfs", "routes/api/clear-opfs.tsx"),
+	...prefix("sqlite", [
+		route("sqlite-test", "routes/sqlite/sqlite-test.tsx"),
+		route("sqlite-test/:dbName", "routes/sqlite/sqlite-test-dynamic.tsx"),
+	]),
 	...prefix("router-toolkit", [
 		route("loader-test", "routes/router-toolkit/loader-test.tsx"),
 		route("action-test", "routes/router-toolkit/action-test.tsx"),

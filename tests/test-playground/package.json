@@ -6,7 +6,7 @@
 		"build": "react-router build",
 		"dev": "react-router dev",
 		"start": "react-router-serve ./build/server/index.js",
-		"typecheck": "react-router typegen && tsc",
+		"typecheck": "react-router typegen && tsc --noEmit -p ./tsconfig.json",
 		"lint": "biome check --write app src",
 		"lint:ci": "biome ci app src",
 		"format": "biome format app src --write",

@@ -11,6 +11,8 @@ import {
 	SqliteWorkerServerMessageType,
 	type SqliteWorkerClientMessage,
 	type SqliteWorkerServerMessage,
+	type StartRequestId,
+	DbIdSchema,
 } from "./schema";
 import { handleRemoteCallback } from "../drizzle/handle-callback";
 import { exhaustiveGuard } from "@firtoz/maybe-error";
@@ -55,14 +57,12 @@ class SqliteWorkerHelper extends WorkerHelper<
 	SqliteWorkerServerMessage
 > {
 	private initPromise: Promise<Sqlite3Static>;
-	sqliteDb: Database | null = null;
-	isInitialized = false;
-	requestQueue: Array<{
-		data: Extract<
-			SqliteWorkerClientMessage,
-			{ type: SqliteWorkerClientMessageType.RemoteCallbackRequest }
-		>;
-	}> = [];
+	private databases = new Map<
+		import("./schema").DbId,
+		{ db: Database; initialized: boolean }
+	>();
+	private diagnostics: StorageDiagnostics | null = null;
+	private isPrepared = false;
 
 	constructor() {
 		super(self, SqliteWorkerClientMessageSchema, sqliteWorkerServerMessage, {
@@ -193,154 +193,20 @@ class SqliteWorkerHelper extends WorkerHelper<
 		};
 	}
 
-	private async start(sqlite3: Sqlite3Static, dbName: string) {
-		this.log("Running SQLite3 version", sqlite3.version.libVersion);
-
-		// Get diagnostics information
-		const diagnostics = await this.getDiagnostics();
-
-		// Log diagnostic results
-		this.log("Diagnostics results:");
-		this.log(
-			"Security Context:",
-			diagnostics.isSecureContext ? "Secure" : "Not Secure",
-		);
-		this.log(
-			"Storage APIs:",
-			[
-				diagnostics.hasOPFS ? "OPFS" : null,
-				diagnostics.hasFileSystem ? "File System" : null,
-				diagnostics.hasStorage ? "Storage" : null,
-				diagnostics.hasStoragePersist ? "Persistence" : null,
-			]
-				.filter(Boolean)
-				.join(", ") || "None available",
-		);
-
-		// Log OPFS status
-		this.log("OPFS API available:", diagnostics.hasOPFS ? "Yes" : "No");
-		this.log(
-			"OPFS directly accessible:",
-			diagnostics.opfsAccessible ? "Yes" : "No",
-		);
-		this.log("SQLite OPFS support:", "opfs" in sqlite3 ? "Yes" : "No");
-
-		if (diagnostics.navigatorStorageEstimate) {
-			const { quota, usage } = diagnostics.navigatorStorageEstimate;
-			const usedMB = Math.round(usage ? usage / (1024 * 1024) : 0);
-			const quotaMB = Math.round(quota ? quota / (1024 * 1024) : 0);
-			this.log(
-				"Storage Usage:",
-				`${usedMB}MB of ${quotaMB}MB (${quota ? Math.round(((usage || 0) / quota) * 100) : 0}%)`,
-			);
-		}
-
-		this.log("Security Headers:");
-		this.log(
-			"- Cross-Origin-Embedder-Policy:",
-			diagnostics.headers.coep || "not set",
-		);
-		this.log(
-			"- Cross-Origin-Opener-Policy:",
-			diagnostics.headers.coop || "not set",
-		);
-		this.log("Cross-Origin Isolated:", self.crossOriginIsolated ? "Yes" : "No");
-
-		let storageStatus: WorkerStorageStatus;
-
-		const dbFileName = `${dbName}.sqlite3`;
-
-		if ("opfs" in sqlite3) {
-			this.sqliteDb = new sqlite3.oo1.OpfsDb(dbFileName);
-			this.log(
-				"OPFS is available, created persisted database at",
-				this.sqliteDb.filename,
-			);
-			storageStatus = {
-				status: "persistent",
-				diagnostics,
-			};
-		} else {
-			this.sqliteDb = new sqlite3.oo1.DB(dbFileName, "c");
-			this.log(
-				"OPFS is not available, created transient database",
-				this.sqliteDb.filename,
-			);
-
-			let reason: StorageTransientStatusReason;
-
-			if (!diagnostics.isSecureContext) {
-				reason = "not-secure-context";
-				this.log(
-					"OPFS unavailable reason: Not in a secure context (HTTPS required)",
-				);
-			} else if (!self.crossOriginIsolated) {
-				reason = "not-cross-origin-isolated";
-				this.log("OPFS unavailable reason: Site is not cross-origin isolated");
-				this.log(
-					"Required headers: Cross-Origin-Embedder-Policy: require-corp and Cross-Origin-Opener-Policy: same-origin",
-				);
-			} else {
-				reason = "indexeddb-error";
-				this.log(
-					"OPFS unavailable reason: Unknown (possibly browser support or permissions)",
-				);
-			}
-
-			storageStatus = {
-				status: "transient",
-				reason,
-				diagnostics,
-			};
-		}
-
-		// Send storage status to main thread
-		this.log("[SQLite Worker] storage-status", storageStatus);
-
-		try {
-			// Database is now ready for use
-			this.log("Database ready for use");
-
-			// Mark as initialized
-			this.isInitialized = true;
-
-			// Process queued requests
-			this.log(`Processing ${this.requestQueue.length} queued requests`);
-			await this.processQueuedRequests();
-		} catch (err) {
-			if (err instanceof Error) {
-				this.error(err.name, err.message);
-			} else {
-				this.error(err);
-			}
-		}
-	}
-
 	// Helper method to process remote callback requests
 	private async processRemoteCallbackRequest(
 		data: Extract<
 			SqliteWorkerClientMessage,
 			{ type: SqliteWorkerClientMessageType.RemoteCallbackRequest }
 		>,
+		sqliteDb: Database,
 	): Promise<void> {
-		if (!this.sqliteDb) {
-			console.error(
-				`[${new Date().toISOString()}] [SqliteWorkerHelper] SQLite database not initialized`,
-			);
-			this.send({
-				type: SqliteWorkerServerMessageType.RemoteCallbackError,
-				id: data.id,
-				error: "SQLite database not initialized",
-			});
-			return;
-		}
-
 		console.log(
-			`[${new Date().toISOString()}] [SqliteWorkerHelper] remote-callback`,
+			`[${new Date().toISOString()}] [SqliteWorkerHelper] remote-callback for dbId: ${data.dbId}`,
 			data,
 		);
 		const result = await handleRemoteCallback({
-			sqliteDb: this.sqliteDb,
+			sqliteDb,
 			sql: data.sql,
 			params: data.params,
 			method: data.method,
@@ -366,32 +232,121 @@ class SqliteWorkerHelper extends WorkerHelper<
 		}
 	}
 
-	// Process all queued requests after initialization
-	async processQueuedRequests(): Promise<void> {
-		while (this.requestQueue.length > 0) {
-			const queuedRequest = this.requestQueue.shift();
-			if (queuedRequest) {
-				try {
-					await this.processRemoteCallbackRequest(queuedRequest.data);
-				} catch (err) {
-					console.error("Error processing queued request:", err);
-				}
-			}
+	private async prepare(sqlite3: Sqlite3Static) {
+		if (this.isPrepared) {
+			this.log("Already prepared, skipping diagnostics");
+			return;
 		}
+
+		this.log("Preparing worker - running diagnostics");
+		this.diagnostics = await this.getDiagnostics();
+		this.isPrepared = true;
+
+		// Log diagnostic results
+		this.log("Diagnostics results:");
+		this.log(
+			"Security Context:",
+			this.diagnostics.isSecureContext ? "Secure" : "Not Secure",
+		);
+		this.log(
+			"Storage APIs:",
+			[
+				this.diagnostics.hasOPFS ? "OPFS" : null,
+				this.diagnostics.hasFileSystem ? "File System" : null,
+				this.diagnostics.hasStorage ? "Storage" : null,
+				this.diagnostics.hasStoragePersist ? "Persistence" : null,
+			]
+				.filter(Boolean)
+				.join(", ") || "None available",
+		);
+		this.log("OPFS API available:", this.diagnostics.hasOPFS ? "Yes" : "No");
+		this.log(
+			"OPFS directly accessible:",
+			this.diagnostics.opfsAccessible ? "Yes" : "No",
+		);
+		this.log("SQLite OPFS support:", "opfs" in sqlite3 ? "Yes" : "No");
+
+		if (this.diagnostics.navigatorStorageEstimate) {
+			const { quota, usage } = this.diagnostics.navigatorStorageEstimate;
+			const usedMB = Math.round(usage ? usage / (1024 * 1024) : 0);
+			const quotaMB = Math.round(quota ? quota / (1024 * 1024) : 0);
+			this.log(
+				"Storage Usage:",
+				`${usedMB}MB of ${quotaMB}MB (${quota ? Math.round(((usage || 0) / quota) * 100) : 0}%)`,
+			);
+		}
+
+		this.log("Security Headers:");
+		this.log(
+			"- Cross-Origin-Embedder-Policy:",
+			this.diagnostics.headers.coep || "not set",
+		);
+		this.log(
+			"- Cross-Origin-Opener-Policy:",
+			this.diagnostics.headers.coop || "not set",
+		);
+		this.log("Cross-Origin Isolated:", self.crossOriginIsolated ? "Yes" : "No");
+	}
+
+	private async startDatabase(
+		sqlite3: Sqlite3Static,
+		dbName: string,
+		requestId: StartRequestId,
+	) {
+		if (!this.isPrepared || !this.diagnostics) {
+			throw new Error("Worker not prepared - call prepare first");
+		}
+
+		const dbId = DbIdSchema.parse(crypto.randomUUID());
+		this.log(
+			`Starting database "${dbName}" with dbId: ${dbId}, requestId: ${requestId}`,
+		);
+
+		const dbFileName = `${dbName}.sqlite3`;
+		let db: Database;
+
+		if ("opfs" in sqlite3) {
+			db = new sqlite3.oo1.OpfsDb(dbFileName);
+			this.log("OPFS is available, created persisted database at", db.filename);
+		} else {
+			db = new sqlite3.oo1.DB(dbFileName, "c");
+			this.log(
+				"OPFS is not available, created transient database",
+				db.filename,
+			);
+		}
+
+		// Store database with initialized flag
+		this.databases.set(dbId, { db, initialized: true });
+		this.log(`Database ${dbId} ready for use`);
+
+		// Send Started message with dbId and requestId
+		this.send({
+			type: SqliteWorkerServerMessageType.Started,
+			requestId,
+			dbId,
+		});
 	}
 
 	private async _handleMessage(data: SqliteWorkerClientMessage) {
 		const { type } = data;
 		switch (type) {
+			case SqliteWorkerClientMessageType.Prepare:
+				{
+					console.log("prepare");
+					const sqlite3 = await this.initPromise;
+					await this.prepare(sqlite3);
+
+					this.send({
+						type: SqliteWorkerServerMessageType.Prepared,
+					});
+				}
+				break;
 			case SqliteWorkerClientMessageType.Start:
 				{
 					console.log("start", data);
 					const sqlite3 = await this.initPromise;
-					await this.start(sqlite3, data.dbName);
-
-					this.send({
-						type: SqliteWorkerServerMessageType.Started,
-					});
+					await this.startDatabase(sqlite3, data.dbName, data.requestId);
 				}
 				break;
 			case SqliteWorkerClientMessageType.RemoteCallbackRequest:
@@ -401,17 +356,30 @@ class SqliteWorkerHelper extends WorkerHelper<
 						data,
 					);
 
-					// If database is not initialized, queue the request
-					if (!this.isInitialized) {
-						console.log(
-							`[${new Date().toISOString()}] [SqliteWorkerHelper] Database not initialized, queuing request`,
-						);
-						this.requestQueue.push({ data });
+					// Get the database for this request
+					const dbEntry = this.databases.get(data.dbId);
+					if (!dbEntry) {
+						this.error(`Database not found for dbId: ${data.dbId}`);
+						this.send({
+							type: SqliteWorkerServerMessageType.RemoteCallbackError,
+							id: data.id,
+							error: `Database not found: ${data.dbId}`,
+						});
 						return;
 					}
 
-					// Process the request immediately if initialized
-					await this.processRemoteCallbackRequest(data);
+					if (!dbEntry.initialized) {
+						this.error(`Database not initialized for dbId: ${data.dbId}`);
+						this.send({
+							type: SqliteWorkerServerMessageType.RemoteCallbackError,
+							id: data.id,
+							error: `Database not initialized: ${data.dbId}`,
+						});
+						return;
+					}
+
+					// Process the request with the correct database
+					await this.processRemoteCallbackRequest(data, dbEntry.db);
 				}
 				break;
 			default:

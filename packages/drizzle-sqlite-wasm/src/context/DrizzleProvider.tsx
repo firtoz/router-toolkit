@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { createContext, useRef, useMemo, useCallback, useEffect } from "react";
+import { createContext, useMemo, useCallback, useEffect } from "react";
 import type { SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 import {
 	createCollection,

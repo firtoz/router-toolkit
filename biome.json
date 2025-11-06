@@ -7,7 +7,11 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!tests/test-schema/drizzle"]
+		"includes": [
+			"**",
+			"!tests/test-schema/drizzle",
+			"!tests/test-playground/.react-router"
+		]
 	},
 	"formatter": {
 		"enabled": true,
