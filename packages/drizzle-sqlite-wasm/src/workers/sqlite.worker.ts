@@ -11,25 +11,12 @@ import {
 	SqliteWorkerServerMessageType,
 	type SqliteWorkerClientMessage,
 	type SqliteWorkerServerMessage,
-} from "./sqlite-worker-schema";
-import { handleRemoteCallback } from "./handle-remote-callback";
+} from "../sqlite-worker-schema";
+import { handleRemoteCallback } from "../handle-remote-callback";
 import { exhaustiveGuard } from "@firtoz/maybe-error";
 
 // Declare self as DedicatedWorkerGlobalScope for TypeScript
 declare var self: DedicatedWorkerGlobalScope;
-
-// export type WorkerMessage =
-// 	| {
-// 			type: "setup";
-// 			dbName: string;
-// 	  }
-// 	| {
-// 			type: "query";
-// 			id: string;
-// 			sql: string;
-// 			params: BindingSpec;
-// 			method: "run" | "all" | "values" | "get";
-// 	  };
 
 // Define types for diagnostics information
 export type StorageDiagnostics = {

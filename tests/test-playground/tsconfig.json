@@ -3,9 +3,7 @@
 		"**/*",
 		"**/.server/**/*",
 		"**/.client/**/*",
-		".react-router/types/**/*",
-		"../../packages/drizzle-sqlite-wasm/src/sqlite.worker.ts",
-		"../../packages/drizzle-sqlite-wasm/src/sqlite-worker-schema.ts"
+		".react-router/types/**/*"
 	],
 	"exclude": ["app/workers/**/*.worker.ts"],
 	"references": [

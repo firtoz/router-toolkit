@@ -4,11 +4,8 @@
 		"composite": true,
 		"lib": ["ES2022", "WebWorker"],
 		"module": "ES2022",
-		"moduleResolution": "bundler"
+		"moduleResolution": "bundler",
+		"skipLibCheck": true
 	},
-	"include": [
-		"app/workers/**/*.ts",
-		"../../packages/drizzle-sqlite-wasm/src/sqlite.worker.ts",
-		"../../packages/drizzle-sqlite-wasm/src/sqlite-worker-schema.ts"
-	]
+	"include": ["app/workers/**/*.ts"]
 }
