@@ -5,7 +5,6 @@ export {
 	syncableTable,
 } from "./collections/drizzle-collection";
 export { useDrizzle } from "./hooks/useDrizzle";
-export { useDrizzleCollection } from "./hooks/useDrizzleCollection";
 export {
 	DrizzleProvider,
 	DrizzleContext,

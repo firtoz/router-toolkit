@@ -7,5 +7,5 @@
 		"moduleResolution": "bundler",
 		"skipLibCheck": true
 	},
-	"include": ["app/workers/**/*.worker.ts"]
+	"include": ["app/workers/**/*.worker.ts", "app/workers/**/*.schema.ts"]
 }

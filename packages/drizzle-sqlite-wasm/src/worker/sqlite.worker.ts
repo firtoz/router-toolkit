@@ -28,7 +28,6 @@ export type StorageDiagnostics = {
 	hasFileSystem: boolean;
 	hasStorage: boolean;
 	hasStoragePersist: boolean;
-	navigatorStorageEstimate: StorageEstimate | null;
 	headers: {
 		coep: string | null;
 		coop: string | null;
@@ -132,15 +131,6 @@ class SqliteWorkerHelper extends WorkerHelper<
 			}
 		}
 
-		let navigatorStorageEstimate: StorageEstimate | null = null;
-		if (hasStorage) {
-			try {
-				navigatorStorageEstimate = await navigator.storage.estimate();
-			} catch (e) {
-				console.error("Failed to get storage estimate:", e);
-			}
-		}
-
 		// Check if cross-origin isolation is enabled
 		const isCrossOriginIsolated = self.crossOriginIsolated;
 
@@ -187,7 +177,6 @@ class SqliteWorkerHelper extends WorkerHelper<
 			hasFileSystem,
 			hasStorage,
 			hasStoragePersist,
-			navigatorStorageEstimate,
 			headers,
 			opfsAccessible,
 		};
@@ -265,16 +254,6 @@ class SqliteWorkerHelper extends WorkerHelper<
 			this.diagnostics.opfsAccessible ? "Yes" : "No",
 		);
 		this.log("SQLite OPFS support:", "opfs" in sqlite3 ? "Yes" : "No");
-
-		if (this.diagnostics.navigatorStorageEstimate) {
-			const { quota, usage } = this.diagnostics.navigatorStorageEstimate;
-			const usedMB = Math.round(usage ? usage / (1024 * 1024) : 0);
-			const quotaMB = Math.round(quota ? quota / (1024 * 1024) : 0);
-			this.log(
-				"Storage Usage:",
-				`${usedMB}MB of ${quotaMB}MB (${quota ? Math.round(((usage || 0) / quota) * 100) : 0}%)`,
-			);
-		}
 
 		this.log("Security Headers:");
 		this.log(

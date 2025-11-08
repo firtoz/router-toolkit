@@ -379,31 +379,63 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Query Ordering", () => {
 		// Check initial count
 		const initialCount = await todoCards.count();
 
-		// Add todos in sequence with small delays
+		// Add todos one at a time with delays to ensure distinct timestamps
 		const todos = ["First", "Second", "Third"];
-		for (const todo of todos) {
-			await input.fill(todo);
+		for (let i = 0; i < todos.length; i++) {
+			await input.fill(todos[i]);
 			await addButton.click();
-			await page.waitForTimeout(100); // Ensure different timestamps
+
+			// Wait for the new todo to appear
+			await expect(todoCards).toHaveCount(initialCount + i + 1, {
+				timeout: 2000,
+			});
+			await expect(todoCards.filter({ hasText: todos[i] })).toHaveCount(1, {
+				timeout: 2000,
+			});
+
+			// Add delay after each insert to ensure different millisecond timestamps for the next one
+			if (i < todos.length - 1) {
+				await page.waitForTimeout(200);
+			}
 		}
 
-		await expect(todoCards).toHaveCount(initialCount + 3, { timeout: 2000 });
+		// Verify final count
+		await expect(todoCards).toHaveCount(initialCount + 3);
 
-		// Check order of OUR todos by examining cards that contain our text
-		// They should appear in insertion order (oldest first due to createdAt asc)
-		const ourTodos = todoCards.filter({
-			hasText: /^(First|Second|Third|Fourth)$/,
-		});
-		await expect(ourTodos.nth(0)).toContainText("First");
-		await expect(ourTodos.nth(1)).toContainText("Second");
-		await expect(ourTodos.nth(2)).toContainText("Third");
+		// Check visual order - todos should appear in the order they were created
+		// because of orderBy(asc(table.createdAt))
+		const getIndex = async (text: string) => {
+			return await todoCards.evaluateAll((cards, searchText) => {
+				return cards.findIndex((card) =>
+					card.textContent?.includes(searchText),
+				);
+			}, text);
+		};
 
-		// Add a new todo - should appear at the end of our sequence
+		const firstIdx = await getIndex("First");
+		const secondIdx = await getIndex("Second");
+		const thirdIdx = await getIndex("Third");
+
+		// Verify they appear in the correct order (First < Second < Third)
+		expect(firstIdx).toBeGreaterThanOrEqual(0);
+		expect(firstIdx).toBeLessThan(secondIdx);
+		expect(secondIdx).toBeLessThan(thirdIdx);
+
+		// Add a new todo - should appear at the end
+		await page.waitForTimeout(200); // Delay to ensure different millisecond timestamp
 		await input.fill("Fourth");
 		await addButton.click();
 
+		// Wait for it to appear
 		await expect(todoCards).toHaveCount(initialCount + 4, { timeout: 2000 });
-		await expect(ourTodos.nth(3)).toContainText("Fourth");
+		await expect(todoCards.filter({ hasText: "Fourth" })).toHaveCount(1, {
+			timeout: 2000,
+		});
+
+		const fourthIdx = await getIndex("Fourth");
+
+		// Fourth should appear after Third (orderBy createdAt asc)
+		expect(thirdIdx).toBeLessThan(fourthIdx);
 	});
 });
 

@@ -1,4 +1,4 @@
-import { href } from "react-router";
+import { href, Link } from "react-router";
 
 export function Welcome() {
 	return (
@@ -11,9 +11,9 @@ export function Welcome() {
 				<ul className="space-y-2">
 					{routerToolkitRoutes.map(({ path, text, description }) => (
 						<li key={path}>
-							<a
+							<Link
 								className="block p-3 rounded-lg bg-gray-50/50 dark:bg-gray-800/30 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all cursor-pointer border border-gray-200/50 dark:border-gray-700/50 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm"
-								href={href(path)}
+								to={path}
 							>
 								<div className="text-blue-700 dark:text-blue-400 font-medium transition-colors">
 									{text}
@@ -21,7 +21,7 @@ export function Welcome() {
 								<div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
 									{description}
 								</div>
-							</a>
+							</Link>
 						</li>
 					))}
 				</ul>
@@ -37,7 +37,7 @@ export function Welcome() {
 						<li key={path}>
 							<a
 								className="block p-3 rounded-lg bg-gray-50/50 dark:bg-gray-800/30 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all cursor-pointer border border-gray-200/50 dark:border-gray-700/50 hover:border-green-300 dark:hover:border-green-700 hover:shadow-sm"
-								href={href(path)}
+								href={path}
 							>
 								<div className="text-green-700 dark:text-green-400 font-medium transition-colors">
 									{text}
@@ -56,34 +56,34 @@ export function Welcome() {
 
 const routerToolkitRoutes = [
 	{
-		path: "/router-toolkit/loader-test" as const,
+		path: href("/router-toolkit/loader-test"),
 		text: "useDynamicFetcher (Loader)",
 		description:
 			"Test route with data loading functionality using React Router's useFetcher hook",
 	},
 	{
-		path: "/router-toolkit/action-test" as const,
+		path: href("/router-toolkit/action-test"),
 		text: "useDynamicSubmitter (Action)",
 		description:
 			"Test route with form submission and action handling capabilities",
 	},
 	{
-		path: "/router-toolkit/form-action-test" as const,
+		path: href("/router-toolkit/form-action-test"),
 		text: "formAction + useDynamicSubmitter",
 		description: "Form validation with Zod schema and type-safe error handling",
 	},
 	{
-		path: "/router-toolkit/submitter-with-loader" as const,
+		path: href("/router-toolkit/submitter-with-loader"),
 		text: "useDynamicSubmitter + useLoaderData",
 		description: "Form submissions working alongside loader data",
 	},
 	{
-		path: "/router-toolkit/fetcher-data-refresh" as const,
+		path: href("/router-toolkit/fetcher-data-refresh"),
 		text: "useDynamicFetcher (Data Fetching)",
 		description: "Programmatic data fetching from loaders using fetcher.load()",
 	},
 	{
-		path: "/router-toolkit/fetcher-invalidation" as const,
+		path: href("/router-toolkit/fetcher-invalidation"),
 		text: "useDynamicFetcher (Invalidation)",
 		description:
 			"Data invalidation and revalidation with timestamp verification",
@@ -92,9 +92,15 @@ const routerToolkitRoutes = [
 
 const sqliteRoutes = [
 	{
-		path: "/sqlite/sqlite-test" as const,
+		path: href("/sqlite/sqlite-test"),
 		text: "DrizzleProvider + useCollection",
 		description:
 			"SQLite WASM with Drizzle ORM: Real-time queries with live updates using useLiveQuery",
+	},
+	{
+		path: href("/api/clear-opfs"),
+		text: "Clear OPFS Storage",
+		description:
+			"Clear all Origin Private File System (OPFS) storage and view file directory structure",
 	},
 ];

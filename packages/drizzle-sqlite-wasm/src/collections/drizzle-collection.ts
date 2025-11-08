@@ -16,12 +16,12 @@ import {
 import { type BuildSchema, createSelectSchema } from "drizzle-zod";
 
 export const idColumn = text("id").primaryKey();
+// Use unixepoch with 'subsec' modifier for millisecond precision timestamps
 export const createdAtColumn = integer("createdAt", { mode: "timestamp" })
-
-	.default(sql`(current_timestamp)`)
+	.default(sql`(cast(unixepoch('now', 'subsec') * 1000 as integer))`)
 	.notNull();
 export const updatedAtColumn = integer("updatedAt", { mode: "timestamp" })
-	.default(sql`(current_timestamp)`)
+	.default(sql`(cast(unixepoch('now', 'subsec') * 1000 as integer))`)
 	.notNull();
 export const deletedAtColumn = integer("deletedAt", {
 	mode: "timestamp",
@@ -97,6 +97,7 @@ export interface DrizzleCollectionConfig<
 				$error: "The schema needs to include at least one table that uses the syncableTable function.";
 			}
 		: TTableName;
+	readyPromise: Promise<void>;
 }
 
 export type ValidTableNames<TSchema extends Record<string, unknown>> = {
@@ -117,7 +118,7 @@ export function drizzleCollectionOptions<
 	const tableName = config.tableName as string &
 		ValidTableNames<DrizzleSchema<TDrizzle>>;
 
-	const table = config.drizzle._.fullSchema[tableName] as TTable;
+	const table = config.drizzle?._.fullSchema[tableName] as TTable;
 
 	let insertListener: CollectionType["onInsert"] | null = null;
 	let updateListener: CollectionType["onUpdate"] | null = null;
@@ -134,6 +135,8 @@ export function drizzleCollectionOptions<
 				const { begin, write, commit, markReady } = params;
 
 				const initialSync = async () => {
+					await config.readyPromise;
+
 					try {
 						begin();
 

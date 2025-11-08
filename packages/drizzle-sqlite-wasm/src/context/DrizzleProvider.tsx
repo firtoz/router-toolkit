@@ -73,40 +73,48 @@ export function DrizzleProvider<TSchema extends Record<string, unknown>>({
 	schema,
 	migrations,
 }: DrizzleProviderProps<TSchema>) {
-	const { drizzle } = useDrizzle(worker, dbName, schema, migrations);
+	const { drizzle, readyPromise } = useDrizzle(
+		worker,
+		dbName,
+		schema,
+		migrations,
+	);
+
 	// Collection cache with ref counting
 	const collections = useMemo<Map<string, CollectionCacheEntry>>(
 		() => new Map(),
 		[],
 	);
 
-	const getCollection: DrizzleContextValue<TSchema>["getCollection"] =
-		useCallback(
-			(
-				tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
-			) => {
-				const cacheKey = tableName;
+	const getCollection = useCallback<
+		DrizzleContextValue<TSchema>["getCollection"]
+	>(
+		(
+			tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
+		) => {
+			const cacheKey = tableName;
 
-				// Check if collection already exists in cache
-				if (!collections.has(cacheKey)) {
-					// Create new collection and cache it with ref count 0
-					const collection = createCollection(
-						drizzleCollectionOptions({
-							drizzle,
-							tableName,
-						}),
-					);
-					collections.set(cacheKey, {
-						collection,
-						refCount: 0,
-					});
-				}
+			// Check if collection already exists in cache
+			if (!collections.has(cacheKey)) {
+				// Create new collection and cache it with ref count 0
+				const collection = createCollection(
+					drizzleCollectionOptions({
+						drizzle,
+						tableName,
+						readyPromise,
+					}),
+				);
+				collections.set(cacheKey, {
+					collection,
+					refCount: 0,
+				});
+			}
 
-				// biome-ignore lint/style/noNonNullAssertion: We just ensured the collection exists
-				return collections.get(cacheKey)!.collection;
-			},
-			[drizzle, collections],
-		);
+			// biome-ignore lint/style/noNonNullAssertion: We just ensured the collection exists
+			return collections.get(cacheKey)!.collection;
+		},
+		[drizzle, collections, readyPromise],
+	);
 
 	const incrementRefCount: DrizzleContextValue<TSchema>["incrementRefCount"] =
 		useCallback(

@@ -8,6 +8,7 @@ import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worke
 import * as schema from "test-schema/schema";
 import migrations from "test-schema/drizzle/migrations";
 import { useLiveQuery } from "@tanstack/react-db";
+import { formatDateWithMs } from "~/utils/date-format";
 
 type Todo = typeof schema.todoTable.$inferSelect;
 
@@ -60,11 +61,11 @@ const TodoItem = ({ todo, onToggleComplete, onDelete }: TodoItemProps) => {
 							<div className="flex items-center gap-4 flex-wrap">
 								<span>
 									<span className="font-medium">Created:</span>{" "}
-									{new Date(todo.createdAt).toLocaleString()}
+									{formatDateWithMs(todo.createdAt)}
 								</span>
 								<span>
 									<span className="font-medium">Updated:</span>{" "}
-									{new Date(todo.updatedAt).toLocaleString()}
+									{formatDateWithMs(todo.updatedAt)}
 								</span>
 							</div>
 						</div>

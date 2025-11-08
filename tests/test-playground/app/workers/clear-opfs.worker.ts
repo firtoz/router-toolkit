@@ -10,6 +10,7 @@ import {
 	ClearOpfsServerMessageType,
 	type ClearOpfsClientMessage,
 	type ClearOpfsServerMessage,
+	type OpfsEntry,
 } from "./clear-opfs.schema";
 
 class ClearOpfsWorkerHelper extends WorkerHelper<
@@ -17,25 +18,77 @@ class ClearOpfsWorkerHelper extends WorkerHelper<
 	ClearOpfsServerMessage
 > {
 	constructor() {
-		super(self, ClearOpfsClientMessageSchema, ClearOpfsServerMessageSchema, {
-			handleMessage: (data) => {
-				this._handleMessage(data);
+		super(
+			self as unknown as DedicatedWorkerGlobalScope,
+			ClearOpfsClientMessageSchema,
+			ClearOpfsServerMessageSchema,
+			{
+				handleMessage: (data) => {
+					this._handleMessage(data);
+				},
+				handleInputValidationError: (error, originalData) => {
+					console.error("Input validation error", { error, originalData });
+				},
+				handleOutputValidationError: (error, originalData) => {
+					console.error("Output validation error", { error, originalData });
+				},
+				handleProcessingError: (error, validatedData) => {
+					console.error("Processing error", { error, validatedData });
+				},
 			},
-			handleInputValidationError: (error, originalData) => {
-				console.error("Input validation error", { error, originalData });
-			},
-			handleOutputValidationError: (error, originalData) => {
-				console.error("Output validation error", { error, originalData });
-			},
-			handleProcessingError: (error, validatedData) => {
-				console.error("Processing error", { error, validatedData });
-			},
-		});
+		);
 
 		// Send ready message
 		this.send({
 			type: ClearOpfsServerMessageType.Ready,
 		});
+	}
+
+	private async listOPFS() {
+		try {
+			const root = await navigator.storage.getDirectory();
+			const entries = await this.listDirectoryRecursive(root, "/");
+
+			this.send({
+				type: ClearOpfsServerMessageType.Listed,
+				entries,
+			});
+		} catch (error) {
+			this.send({
+				type: ClearOpfsServerMessageType.Error,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	private async listDirectoryRecursive(
+		directory: FileSystemDirectoryHandle,
+		path: string,
+	): Promise<OpfsEntry[]> {
+		const entries: OpfsEntry[] = [];
+
+		// @ts-expect-error - OPFS API not fully typed
+		for await (const [name, handle] of directory.entries()) {
+			const entryPath = path === "/" ? `/${name}` : `${path}/${name}`;
+
+			if (handle.kind === "directory") {
+				const children = await this.listDirectoryRecursive(handle, entryPath);
+				entries.push({
+					name,
+					kind: "directory",
+					path: entryPath,
+					children,
+				});
+			} else {
+				entries.push({
+					name,
+					kind: "file",
+					path: entryPath,
+				});
+			}
+		}
+
+		return entries;
 	}
 
 	private async clearOPFS() {
@@ -71,6 +124,9 @@ class ClearOpfsWorkerHelper extends WorkerHelper<
 		switch (type) {
 			case ClearOpfsClientMessageType.Clear:
 				await this.clearOPFS();
+				break;
+			case ClearOpfsClientMessageType.List:
+				await this.listOPFS();
 				break;
 			default:
 				return exhaustiveGuard(type);

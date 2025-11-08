@@ -15,10 +15,20 @@ import {
 	StartRequestIdSchema,
 } from "./schema";
 
-export class SqliteWorkerClient extends WorkerClient<
-	SqliteWorkerClientMessage,
-	SqliteWorkerServerMessage
-> {
+export interface ISqliteWorkerClient {
+	performRemoteCallback: (
+		data: Omit<SqliteWorkerRemoteCallbackClientMessage, "type" | "id" | "dbId">,
+		resolve: (value: { rows: unknown[] }) => void,
+		reject: (error: Error) => void,
+	) => void;
+	onStarted: (callback: () => void) => void;
+	terminate: () => void;
+}
+
+export class SqliteWorkerClient
+	extends WorkerClient<SqliteWorkerClientMessage, SqliteWorkerServerMessage>
+	implements ISqliteWorkerClient
+{
 	private readonly remoteCallbacks = new Map<
 		RemoteCallbackId,
 		{

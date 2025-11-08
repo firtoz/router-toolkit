@@ -7,6 +7,7 @@ import {
 	ClearOpfsServerMessageType,
 	type ClearOpfsClientMessage,
 	type ClearOpfsServerMessage,
+	type OpfsEntry,
 } from "../workers/clear-opfs.schema";
 
 export class ClearOpfsWorkerClient extends WorkerClient<
@@ -15,6 +16,7 @@ export class ClearOpfsWorkerClient extends WorkerClient<
 > {
 	private onReadyCallback?: () => void;
 	private onClearedCallback?: (count: number) => void;
+	private onListedCallback?: (entries: OpfsEntry[]) => void;
 	private onErrorCallback?: (error: string) => void;
 
 	constructor(worker: Worker) {
@@ -43,6 +45,9 @@ export class ClearOpfsWorkerClient extends WorkerClient<
 			case ClearOpfsServerMessageType.Cleared:
 				this.onClearedCallback?.(message.count);
 				break;
+			case ClearOpfsServerMessageType.Listed:
+				this.onListedCallback?.(message.entries);
+				break;
 			case ClearOpfsServerMessageType.Error:
 				this.onErrorCallback?.(message.error);
 				break;
@@ -59,6 +64,10 @@ export class ClearOpfsWorkerClient extends WorkerClient<
 		this.onClearedCallback = callback;
 	}
 
+	public onListed(callback: (entries: OpfsEntry[]) => void) {
+		this.onListedCallback = callback;
+	}
+
 	public onError(callback: (error: string) => void) {
 		this.onErrorCallback = callback;
 	}
@@ -66,6 +75,12 @@ export class ClearOpfsWorkerClient extends WorkerClient<
 	public clear() {
 		this.send({
 			type: ClearOpfsClientMessageType.Clear,
+		});
+	}
+
+	public list() {
+		this.send({
+			type: ClearOpfsClientMessageType.List,
 		});
 	}
 }

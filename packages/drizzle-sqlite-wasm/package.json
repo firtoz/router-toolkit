@@ -12,6 +12,11 @@
 			"import": "./src/index.ts",
 			"require": "./src/index.ts"
 		},
+		"./schema": {
+			"types": "./src/collections/drizzle-collection.ts",
+			"import": "./src/collections/drizzle-collection.ts",
+			"require": "./src/collections/drizzle-collection.ts"
+		},
 		"./drizzle-sqlite-wasm-worker": {
 			"types": "./src/drizzle/worker.ts",
 			"import": "./src/drizzle/worker.ts",

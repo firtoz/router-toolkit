@@ -1,4 +1,4 @@
-import { syncableTable } from "@firtoz/drizzle-sqlite-wasm";
+import { syncableTable } from "@firtoz/drizzle-sqlite-wasm/schema";
 import { integer, text } from "drizzle-orm/sqlite-core";
 
 export const todoTable = syncableTable("todo", {
