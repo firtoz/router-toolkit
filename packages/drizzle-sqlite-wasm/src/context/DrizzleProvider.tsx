@@ -73,12 +73,29 @@ export function DrizzleProvider<TSchema extends Record<string, unknown>>({
 	schema,
 	migrations,
 }: DrizzleProviderProps<TSchema>) {
+	useEffect(() => {
+		performance.mark(`${dbName}-provider-init-start`);
+		console.log(`[PERF] DrizzleProvider init start for ${dbName}`);
+	}, [dbName]);
+
 	const { drizzle, readyPromise } = useDrizzle(
 		worker,
 		dbName,
 		schema,
 		migrations,
 	);
+
+	useEffect(() => {
+		readyPromise.then(() => {
+			performance.mark(`${dbName}-provider-ready`);
+			performance.measure(
+				`${dbName}-provider-init`,
+				`${dbName}-provider-init-start`,
+				`${dbName}-provider-ready`,
+			);
+			console.log(`[PERF] DrizzleProvider ready for ${dbName}`);
+		});
+	}, [readyPromise, dbName]);
 
 	// Collection cache with ref counting
 	const collections = useMemo<Map<string, CollectionCacheEntry>>(

@@ -1,8 +1,9 @@
-import sqlite3InitModule, {
+import type {
 	// type BindingSpec,
-	type Database,
-	type Sqlite3Static,
+	Database,
+	Sqlite3Static,
 } from "@sqlite.org/sqlite-wasm";
+
 import { WorkerHelper } from "@firtoz/worker-helper";
 import {
 	SqliteWorkerClientMessageSchema,
@@ -64,6 +65,8 @@ class SqliteWorkerHelper extends WorkerHelper<
 	private isPrepared = false;
 
 	constructor() {
+		performance.mark("sqlite-wasm-worker-constructor-start");
+
 		super(self, SqliteWorkerClientMessageSchema, sqliteWorkerServerMessage, {
 			handleMessage: (data) => {
 				console.log(
@@ -86,12 +89,26 @@ class SqliteWorkerHelper extends WorkerHelper<
 			},
 		});
 
+		performance.mark("sqlite-wasm-worker-init-start");
 		this.log("Loading and initializing SQLite3 module...");
 
-		this.initPromise = sqlite3InitModule({
-			print: this.log.bind(this),
-			printErr: this.error.bind(this),
-		});
+		this.initPromise = import("@sqlite.org/sqlite-wasm").then(
+			async ({ default: sqlite3InitModule }) => {
+				const result = await sqlite3InitModule({
+					print: this.log.bind(this),
+					printErr: this.error.bind(this),
+				});
+
+				performance.mark("sqlite-wasm-module-loaded");
+				performance.measure(
+					"sqlite-wasm-module-load",
+					"sqlite-wasm-worker-init-start",
+					"sqlite-wasm-module-loaded",
+				);
+				console.log("[PERF] SQLite3 module loaded");
+				return result;
+			},
+		);
 
 		console.log(
 			`[${new Date().toISOString()}] [SqliteWorkerHelper] sending ready`,
@@ -100,6 +117,14 @@ class SqliteWorkerHelper extends WorkerHelper<
 		this.send({
 			type: SqliteWorkerServerMessageType.Ready,
 		});
+
+		performance.mark("sqlite-wasm-worker-constructor-end");
+		performance.measure(
+			"sqlite-wasm-worker-constructor",
+			"sqlite-wasm-worker-constructor-start",
+			"sqlite-wasm-worker-constructor-end",
+		);
+		console.log("[PERF] SQLite worker constructor complete");
 	}
 
 	private log(...args: unknown[]) {
@@ -227,9 +252,17 @@ class SqliteWorkerHelper extends WorkerHelper<
 			return;
 		}
 
+		performance.mark("sqlite-wasm-diagnostics-start");
 		this.log("Preparing worker - running diagnostics");
 		this.diagnostics = await this.getDiagnostics();
 		this.isPrepared = true;
+		performance.mark("sqlite-wasm-diagnostics-end");
+		performance.measure(
+			"sqlite-wasm-diagnostics",
+			"sqlite-wasm-diagnostics-start",
+			"sqlite-wasm-diagnostics-end",
+		);
+		console.log("[PERF] Worker diagnostics complete");
 
 		// Log diagnostic results
 		this.log("Diagnostics results:");
@@ -281,6 +314,7 @@ class SqliteWorkerHelper extends WorkerHelper<
 			`Starting database "${dbName}" with dbId: ${dbId}, requestId: ${requestId}`,
 		);
 
+		performance.mark(`${dbName}-worker-db-init-start`);
 		const dbFileName = `${dbName}.sqlite3`;
 		let db: Database;
 
@@ -297,6 +331,13 @@ class SqliteWorkerHelper extends WorkerHelper<
 
 		// Store database with initialized flag
 		this.databases.set(dbId, { db, initialized: true });
+		performance.mark(`${dbName}-worker-db-init-end`);
+		performance.measure(
+			`${dbName}-worker-db-init`,
+			`${dbName}-worker-db-init-start`,
+			`${dbName}-worker-db-init-end`,
+		);
+		console.log(`[PERF] Worker database initialized for ${dbName}`);
 		this.log(`Database ${dbId} ready for use`);
 
 		// Send Started message with dbId and requestId

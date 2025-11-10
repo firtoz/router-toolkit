@@ -13,3 +13,20 @@ export {
 export type { DrizzleContextValue } from "./context/DrizzleProvider";
 export { useDrizzleContext } from "./context/useDrizzleContext";
 export type { UseDrizzleContextReturn } from "./context/useDrizzleContext";
+export {
+	getPerformanceMetrics,
+	getPerformanceMarks,
+	logPerformanceMetrics,
+	exportPerformanceData,
+	clearPerformanceData,
+	createPerformanceObserver,
+} from "./utils/performance";
+export type { PerformanceMetrics } from "./utils/performance";
+export {
+	initializeSqliteWorker,
+	getSqliteWorkerManager,
+	isSqliteWorkerInitialized,
+	resetSqliteWorkerManager,
+} from "./worker/global-manager";
+export { SqliteWorkerManager, DbInstance } from "./worker/manager";
+export type { ISqliteWorkerClient } from "./worker/manager";

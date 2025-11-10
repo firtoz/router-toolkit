@@ -1,19 +1,88 @@
-import { useDrizzleContext } from "@firtoz/drizzle-sqlite-wasm";
+import {
+	useDrizzleContext,
+	createPerformanceObserver,
+	logPerformanceMetrics,
+} from "@firtoz/drizzle-sqlite-wasm";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type * as schema from "test-schema/schema";
 import { TodoItem } from "~/components/TodoItem";
 
 export const TodoList = ({ dbName }: { dbName: string }) => {
+	const renderStartRef = useRef(false);
+	const observerRef = useRef<PerformanceObserver | null>(null);
+
+	// Mark TodoList render start and setup performance observer
+	if (!renderStartRef.current) {
+		performance.mark(`${dbName}-todolist-render-start`);
+		console.log(`[PERF] TodoList render start for ${dbName}`);
+		renderStartRef.current = true;
+
+		// Setup performance observer (only in browser)
+		if (typeof window !== "undefined" && !observerRef.current) {
+			observerRef.current = createPerformanceObserver(dbName);
+		}
+	}
+
+	// Cleanup observer on unmount
+	useEffect(() => {
+		return () => {
+			if (observerRef.current) {
+				observerRef.current.disconnect();
+			}
+		};
+	}, []);
+
 	const { useCollection } = useDrizzleContext<typeof schema>();
 
+	performance.mark(`${dbName}-collection-request`);
 	const todoCollection = useCollection("todoTable");
-
-	const { data: todos } = useLiveQuery((q) =>
-		q.from({ todo: todoCollection }).orderBy(({ todo }) => {
-			return todo.createdAt;
-		}, "asc"),
+	performance.mark(`${dbName}-collection-ready`);
+	performance.measure(
+		`${dbName}-collection-get`,
+		`${dbName}-collection-request`,
+		`${dbName}-collection-ready`,
 	);
+	console.log(`[PERF] Collection ready for ${dbName}`);
+
+	const firstQueryRef = useRef(false);
+	const { data: todos } = useLiveQuery((q) => {
+		if (!firstQueryRef.current) {
+			performance.mark(`${dbName}-first-query-start`);
+			console.log(`[PERF] First query start for ${dbName}`);
+		}
+		return q.from({ todo: todoCollection }).orderBy(({ todo }) => {
+			return todo.createdAt;
+		}, "asc");
+	});
+
+	// Track when first query completes
+	useEffect(() => {
+		if (todos && !firstQueryRef.current) {
+			performance.mark(`${dbName}-first-query-complete`);
+			performance.measure(
+				`${dbName}-first-query`,
+				`${dbName}-first-query-start`,
+				`${dbName}-first-query-complete`,
+			);
+			console.log(`[PERF] First query complete for ${dbName}`);
+
+			// Create end-to-end measurement
+			performance.measure(
+				`${dbName}-end-to-end`,
+				`sqlite-test-${dbName}-mount-start`,
+				`${dbName}-first-query-complete`,
+			);
+			console.log(`[PERF] End-to-end initialization complete for ${dbName}`);
+
+			// Log full performance report after a short delay to let all measures complete
+			setTimeout(() => {
+				logPerformanceMetrics(dbName);
+			}, 100);
+
+			firstQueryRef.current = true;
+		}
+	}, [todos, dbName]);
 
 	const [newTodo, setNewTodo] = useState("");
 

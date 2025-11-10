@@ -14,6 +14,12 @@ export default function SqliteTestDynamic() {
 		return <div>No database name provided</div>;
 	}
 
+	// Mark component mount start
+	useEffect(() => {
+		performance.mark(`sqlite-test-${dbName}-mount-start`);
+		console.log(`[PERF] Component mount start for ${dbName}`);
+	}, [dbName]);
+
 	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
