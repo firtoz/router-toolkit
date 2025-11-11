@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
 	DrizzleProvider,
 	useDrizzleContext,
+	makeId,
 } from "@firtoz/drizzle-sqlite-wasm";
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 import * as schema from "test-schema/schema";
@@ -14,8 +15,8 @@ type Todo = typeof schema.todoTable.$inferSelect;
 
 interface TodoItemProps {
 	todo: Todo;
-	onToggleComplete: (id: string) => void;
-	onDelete: (id: string) => void;
+	onToggleComplete: (id: Todo["id"]) => void;
+	onDelete: (id: Todo["id"]) => void;
 }
 
 const TodoItem = ({ todo, onToggleComplete, onDelete }: TodoItemProps) => {
@@ -115,19 +116,21 @@ const TodoList = () => {
 		const trimmedTodo = newTodo.trim();
 		if (trimmedTodo) {
 			todoCollection.insert({
-				id: crypto.randomUUID(),
+				id: makeId(schema.todoTable, crypto.randomUUID()),
 				title: trimmedTodo,
 				completed: false,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				deletedAt: null,
+				parentId: null,
+				userId: null,
 			});
 			setNewTodo("");
 		}
 	}, [newTodo, todoCollection]);
 
 	const handleToggleComplete = useCallback(
-		(id: string) => {
+		(id: Todo["id"]) => {
 			const tx = todoCollection.update(id, (draft) => {
 				draft.completed = !draft.completed;
 			});
@@ -150,7 +153,7 @@ const TodoList = () => {
 	);
 
 	const handleDeleteTodo = useCallback(
-		(id: string) => {
+		(id: Todo["id"]) => {
 			todoCollection.delete(id);
 		},
 		[todoCollection],
@@ -192,7 +195,7 @@ const TodoList = () => {
 			<div className="grid gap-4">
 				{todos?.map((todo) => (
 					<TodoItem
-						key={todo.id}
+						key={String(todo.id)}
 						todo={todo}
 						onToggleComplete={handleToggleComplete}
 						onDelete={handleDeleteTodo}

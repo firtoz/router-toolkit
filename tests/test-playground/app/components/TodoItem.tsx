@@ -3,8 +3,8 @@ import { formatDateWithMs } from "~/utils/date-format";
 
 export interface TodoItemProps {
 	todo: Todo;
-	onToggleComplete: (id: string) => void;
-	onDelete: (id: string) => void;
+	onToggleComplete: (id: Todo["id"]) => void;
+	onDelete: (id: Todo["id"]) => void;
 }
 
 export const TodoItem = ({

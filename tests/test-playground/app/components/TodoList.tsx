@@ -2,10 +2,11 @@ import {
 	useDrizzleContext,
 	createPerformanceObserver,
 	logPerformanceMetrics,
+	makeId,
 } from "@firtoz/drizzle-sqlite-wasm";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useState, useEffect, useRef } from "react";
-import type * as schema from "test-schema/schema";
+import * as schema from "test-schema/schema";
 import { TodoItem } from "~/components/TodoItem";
 
 export const TodoList = ({ dbName }: { dbName: string }) => {
@@ -90,18 +91,20 @@ export const TodoList = ({ dbName }: { dbName: string }) => {
 		const trimmedTodo = newTodo.trim();
 		if (trimmedTodo) {
 			todoCollection.insert({
-				id: crypto.randomUUID(),
+				id: makeId(schema.todoTable, crypto.randomUUID()),
 				title: trimmedTodo,
 				completed: false,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				deletedAt: null,
+				parentId: null,
+				userId: null,
 			});
 			setNewTodo("");
 		}
 	};
 
-	const handleToggleComplete = (id: string) => {
+	const handleToggleComplete = (id: schema.Todo["id"]) => {
 		const tx = todoCollection.update(id, (draft) => {
 			draft.completed = !draft.completed;
 		});
@@ -121,7 +124,7 @@ export const TodoList = ({ dbName }: { dbName: string }) => {
 		);
 	};
 
-	const handleDeleteTodo = (id: string) => {
+	const handleDeleteTodo = (id: schema.Todo["id"]) => {
 		todoCollection.delete(id);
 	};
 

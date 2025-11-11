@@ -3,7 +3,9 @@ export { SqliteWorkerClient } from "./worker/client";
 export {
 	drizzleCollectionOptions,
 	syncableTable,
+	makeId,
 } from "./collections/drizzle-collection";
+export type { IdOf, TableId } from "./collections/drizzle-collection";
 export { useDrizzle } from "./hooks/useDrizzle";
 export {
 	DrizzleProvider,

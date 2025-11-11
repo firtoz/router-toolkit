@@ -9,13 +9,41 @@ import {
 	text,
 	type SQLiteTableWithColumns,
 	type TableConfig,
-	type SQLiteInsertValue,
 	type SQLiteUpdateSetSource,
 	type BaseSQLiteDatabase,
+	type SQLiteTableExtraConfigValue,
+	type SQLiteInsertValue,
 } from "drizzle-orm/sqlite-core";
 import { type BuildSchema, createSelectSchema } from "drizzle-zod";
 
-export const idColumn = text("id").primaryKey();
+export type Branded<T, Brand> = T & { __brand: Brand };
+
+export type IdType = Branded<string, "id">;
+
+export type TableId<TTableName extends string> = Branded<
+	string,
+	`${TTableName}_id`
+>;
+
+// Utility type to extract the ID type from a table
+export type IdOf<TTable extends Table> = TTable extends {
+	$inferSelect: { id: infer TId extends string | number };
+}
+	? TId
+	: string | number;
+
+// Utility function to safely create branded IDs
+export function makeId<TTable extends Table>(
+	_table: TTable,
+	value: string,
+): IdOf<TTable> {
+	return value as IdOf<TTable>;
+}
+
+export const idColumn = text("id").primaryKey().$type<IdType>();
+
+const createTableIdColumn = <TTableName extends string>() =>
+	text("id").primaryKey().$type<TableId<TTableName>>();
 // Use unixepoch with 'subsec' modifier for millisecond precision timestamps
 export const createdAtColumn = integer("createdAt", { mode: "timestamp" })
 	.default(sql`(cast(unixepoch('now', 'subsec') * 1000 as integer))`)
@@ -38,14 +66,31 @@ export const syncableTable = <
 >(
 	tableName: TTableName,
 	columns: TColumns,
+	extraConfig?: (
+		self: BuildColumns<
+			TTableName,
+			Omit<TColumns, "id" | "createdAt" | "updatedAt" | "deletedAt"> & {
+				id: ReturnType<typeof createTableIdColumn<TTableName>>;
+				createdAt: typeof createdAtColumn;
+				updatedAt: typeof updatedAtColumn;
+				deletedAt: typeof deletedAtColumn;
+			},
+			"sqlite"
+		>,
+	) => SQLiteTableExtraConfigValue[],
 ) => {
-	return sqliteTable(tableName, {
-		id: idColumn,
-		createdAt: createdAtColumn,
-		updatedAt: updatedAtColumn,
-		deletedAt: deletedAtColumn,
-		...columns,
-	});
+	const tableIdColumn = createTableIdColumn<TTableName>();
+	return sqliteTable(
+		tableName,
+		{
+			id: tableIdColumn,
+			createdAt: createdAtColumn,
+			updatedAt: updatedAtColumn,
+			deletedAt: deletedAtColumn,
+			...columns,
+		},
+		extraConfig,
+	);
 };
 
 type TableWithRequiredFields = SQLiteTableWithColumns<
@@ -53,7 +98,7 @@ type TableWithRequiredFields = SQLiteTableWithColumns<
 		columns: BuildColumns<
 			string,
 			{
-				id: typeof idColumn;
+				id: ReturnType<typeof createTableIdColumn<any>>;
 				createdAt: typeof createdAtColumn;
 				updatedAt: typeof updatedAtColumn;
 				deletedAt: typeof deletedAtColumn;

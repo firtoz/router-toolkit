@@ -11,8 +11,8 @@ import {
 	type AnyDrizzleDatabase,
 	type ValidTableNames,
 	type DrizzleSchema,
-	type SelectSchema,
 	drizzleCollectionOptions,
+	type IdOf,
 } from "../collections/drizzle-collection";
 import { useDrizzle } from "../hooks/useDrizzle";
 import type { DurableSqliteMigrationConfig } from "../migration/migrator";
@@ -25,8 +25,8 @@ type GetTableFromSchema<
 
 // Helper type to infer the collection type from table - simplified to just the data type
 type InferCollectionFromTable<TTable extends Table> = Collection<
-	InferSchemaOutput<SelectSchema<TTable>>,
-	string
+	TTable["$inferSelect"],
+	IdOf<TTable>
 >;
 
 interface CollectionCacheEntry {
@@ -41,7 +41,7 @@ export type DrizzleContextValue<TSchema extends Record<string, unknown>> = {
 		tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
 	) => Collection<
 		InferSchemaOutput<
-			SelectSchema<GetTableFromSchema<TSchema, typeof tableName>>
+			GetTableFromSchema<TSchema, typeof tableName>["$inferSelect"]
 		>,
 		string
 	>;
@@ -216,5 +216,7 @@ export function useCollection<
 		};
 	}, [unsubscribe]);
 
-	return collection;
+	return collection as unknown as InferCollectionFromTable<
+		GetTableFromSchema<TSchema, TTableName>
+	>;
 }
