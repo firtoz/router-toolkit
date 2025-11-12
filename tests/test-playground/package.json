@@ -18,6 +18,7 @@
 		"test:e2e:debug": "playwright test --debug"
 	},
 	"dependencies": {
+		"@firtoz/drizzle-indexeddb": "workspace:*",
 		"@firtoz/drizzle-sqlite-wasm": "workspace:*",
 		"@firtoz/maybe-error": "workspace:*",
 		"@firtoz/router-toolkit": "workspace:*",

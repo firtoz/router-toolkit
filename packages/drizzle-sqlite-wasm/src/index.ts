@@ -32,3 +32,5 @@ export {
 } from "./worker/global-manager";
 export { SqliteWorkerManager, DbInstance } from "./worker/manager";
 export type { ISqliteWorkerClient } from "./worker/manager";
+export { customSqliteMigrate } from "./migration/migrator";
+export type { DurableSqliteMigrationConfig } from "./migration/migrator";

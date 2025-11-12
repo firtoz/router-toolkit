@@ -43,7 +43,9 @@ function readMigrationFiles({
 	return migrationQueries;
 }
 
-export async function migrate<TSchema extends Record<string, unknown>>(
+export async function customSqliteMigrate<
+	TSchema extends Record<string, unknown>,
+>(
 	db: SqliteRemoteDatabase<TSchema>,
 	config: DurableSqliteMigrationConfig,
 	debug: boolean = false,

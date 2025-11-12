@@ -25,6 +25,9 @@ type Pages = {
       "dbName": string;
     };
   };
+  "/sqlite/indexeddb-migration-test": {
+    params: {};
+  };
   "/router-toolkit/loader-test": {
     params: {};
   };
@@ -48,7 +51,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/api/clear-opfs" | "/sqlite/sqlite-test" | "/sqlite/sqlite-test/:dbName" | "/router-toolkit/loader-test" | "/router-toolkit/action-test" | "/router-toolkit/form-action-test" | "/router-toolkit/submitter-with-loader" | "/router-toolkit/fetcher-data-refresh" | "/router-toolkit/fetcher-invalidation";
+    page: "/" | "/api/clear-opfs" | "/sqlite/sqlite-test" | "/sqlite/sqlite-test/:dbName" | "/sqlite/indexeddb-migration-test" | "/router-toolkit/loader-test" | "/router-toolkit/action-test" | "/router-toolkit/form-action-test" | "/router-toolkit/submitter-with-loader" | "/router-toolkit/fetcher-data-refresh" | "/router-toolkit/fetcher-invalidation";
   };
   "routes/home.tsx": {
     id: "routes/home";
@@ -65,6 +68,10 @@ type RouteFiles = {
   "routes/sqlite/sqlite-test-dynamic.tsx": {
     id: "routes/sqlite/sqlite-test-dynamic";
     page: "/sqlite/sqlite-test/:dbName";
+  };
+  "routes/sqlite/indexeddb-migration-test.tsx": {
+    id: "routes/sqlite/indexeddb-migration-test";
+    page: "/sqlite/indexeddb-migration-test";
   };
   "routes/router-toolkit/loader-test.tsx": {
     id: "routes/router-toolkit/loader-test";
@@ -98,6 +105,7 @@ type RouteModules = {
   "routes/api/clear-opfs": typeof import("./app/routes/api/clear-opfs.tsx");
   "routes/sqlite/sqlite-test": typeof import("./app/routes/sqlite/sqlite-test.tsx");
   "routes/sqlite/sqlite-test-dynamic": typeof import("./app/routes/sqlite/sqlite-test-dynamic.tsx");
+  "routes/sqlite/indexeddb-migration-test": typeof import("./app/routes/sqlite/indexeddb-migration-test.tsx");
   "routes/router-toolkit/loader-test": typeof import("./app/routes/router-toolkit/loader-test.tsx");
   "routes/router-toolkit/action-test": typeof import("./app/routes/router-toolkit/action-test.tsx");
   "routes/router-toolkit/form-action-test": typeof import("./app/routes/router-toolkit/form-action-test.tsx");

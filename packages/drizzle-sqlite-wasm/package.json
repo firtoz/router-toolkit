@@ -76,6 +76,7 @@
 		"access": "public"
 	},
 	"dependencies": {
+		"@firtoz/drizzle-utils": "workspace:*",
 		"@firtoz/maybe-error": "workspace:*",
 		"@firtoz/worker-helper": "workspace:*",
 		"@sqlite.org/sqlite-wasm": "^3.51.0-build1",

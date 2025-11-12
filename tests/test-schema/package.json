@@ -16,6 +16,14 @@
 			"types": "./drizzle/migrations.d.ts",
 			"import": "./drizzle/migrations.js",
 			"require": "./drizzle/migrations.js"
+		},
+		"./drizzle/snapshots": {
+			"import": "./drizzle/snapshots.ts",
+			"require": "./drizzle/snapshots.ts"
+		},
+		"./drizzle/indexeddb-migrations": {
+			"import": "./drizzle/indexeddb-migrations/index.ts",
+			"require": "./drizzle/indexeddb-migrations/index.ts"
 		}
 	},
 	"files": [
@@ -23,7 +31,7 @@
 		"drizzle/**/*"
 	],
 	"scripts": {
-		"db:generate": "bun drizzle-kit generate"
+		"db:generate": "bun drizzle-kit generate && bun post-generate.ts"
 	},
 	"devDependencies": {
 		"drizzle-kit": "^0.31.6"

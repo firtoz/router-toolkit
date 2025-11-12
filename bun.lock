@@ -21,10 +21,18 @@
         "wrangler": "catalog:",
       },
     },
+    "packages/drizzle-indexeddb": {
+      "name": "@firtoz/drizzle-indexeddb",
+      "version": "0.0.0",
+      "dependencies": {
+        "@firtoz/drizzle-utils": "workspace:*",
+      },
+    },
     "packages/drizzle-sqlite-wasm": {
       "name": "@firtoz/drizzle-sqlite-wasm",
       "version": "0.0.0",
       "dependencies": {
+        "@firtoz/drizzle-utils": "workspace:*",
         "@firtoz/maybe-error": "workspace:*",
         "@firtoz/worker-helper": "workspace:*",
         "@sqlite.org/sqlite-wasm": "^3.51.0-build1",
@@ -40,6 +48,10 @@
         "@standard-schema/spec": "^1.0.0",
         "@types/react": "^19.2.3",
       },
+    },
+    "packages/drizzle-utils": {
+      "name": "@firtoz/drizzle-utils",
+      "version": "0.0.0",
     },
     "packages/hono-fetcher": {
       "name": "@firtoz/hono-fetcher",
@@ -116,6 +128,7 @@
     "tests/test-playground": {
       "name": "test-playground",
       "dependencies": {
+        "@firtoz/drizzle-indexeddb": "workspace:*",
         "@firtoz/drizzle-sqlite-wasm": "workspace:*",
         "@firtoz/maybe-error": "workspace:*",
         "@firtoz/router-toolkit": "workspace:*",
@@ -444,7 +457,11 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.4", "", { "os": "win32", "cpu": "x64" }, "sha512-nOT2vZNw6hJ+z43oP1SPea/G/6AbN6X+bGNhNuq8NtRHy4wsMhw765IKLNmnjek7GvjWBYQ8Q5VBoYTFg9y1UQ=="],
 
+    "@firtoz/drizzle-indexeddb": ["@firtoz/drizzle-indexeddb@workspace:packages/drizzle-indexeddb"],
+
     "@firtoz/drizzle-sqlite-wasm": ["@firtoz/drizzle-sqlite-wasm@workspace:packages/drizzle-sqlite-wasm"],
+
+    "@firtoz/drizzle-utils": ["@firtoz/drizzle-utils@workspace:packages/drizzle-utils"],
 
     "@firtoz/hono-fetcher": ["@firtoz/hono-fetcher@workspace:packages/hono-fetcher"],
 

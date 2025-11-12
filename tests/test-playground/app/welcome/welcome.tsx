@@ -98,6 +98,12 @@ const sqliteRoutes = [
 			"SQLite WASM with Drizzle ORM: Real-time queries with live updates using useLiveQuery",
 	},
 	{
+		path: href("/sqlite/indexeddb-migration-test"),
+		text: "IndexedDB Migration Test",
+		description:
+			"Test generated IndexedDB migrations from Drizzle schema snapshots",
+	},
+	{
 		path: href("/api/clear-opfs"),
 		text: "Clear OPFS Storage",
 		description:

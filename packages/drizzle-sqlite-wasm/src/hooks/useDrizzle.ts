@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-	migrate,
+	customSqliteMigrate,
 	type DurableSqliteMigrationConfig,
 } from "@firtoz/drizzle-sqlite-wasm/sqlite-wasm-migrator";
 import { drizzleSqliteWasmWorker } from "@firtoz/drizzle-sqlite-wasm/drizzle-sqlite-wasm-worker";
@@ -140,7 +140,7 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 			try {
 				performance.mark(`${dbName}-migration-start`);
 				console.log(`[PERF] Migration start for ${dbName}`);
-				await migrate(drizzle, migrations);
+				await customSqliteMigrate(drizzle, migrations);
 				performance.mark(`${dbName}-migration-end`);
 				performance.measure(
 					`${dbName}-migration`,
