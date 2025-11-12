@@ -98,7 +98,7 @@ type TableWithRequiredFields = SQLiteTableWithColumns<
 		columns: BuildColumns<
 			string,
 			{
-				id: ReturnType<typeof createTableIdColumn<any>>;
+				id: ReturnType<typeof createTableIdColumn<string>>;
 				createdAt: typeof createdAtColumn;
 				updatedAt: typeof updatedAtColumn;
 				deletedAt: typeof deletedAtColumn;

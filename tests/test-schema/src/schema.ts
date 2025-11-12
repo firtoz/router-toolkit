@@ -9,7 +9,7 @@ import { index, integer, text } from "drizzle-orm/sqlite-core";
 export const userTable = syncableTable(
 	"user",
 	{
-		name: text("name").notNull(),
+		username: text("username").notNull(),
 		email: text("email").notNull(),
 	},
 	(t) => [index("email_index").on(t.email)],
