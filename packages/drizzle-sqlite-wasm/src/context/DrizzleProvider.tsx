@@ -119,6 +119,7 @@ export function DrizzleProvider<TSchema extends Record<string, unknown>>({
 						drizzle,
 						tableName,
 						readyPromise,
+						// syncMode: "on-demand",
 					}),
 				);
 				collections.set(cacheKey, {

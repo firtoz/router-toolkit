@@ -31,7 +31,6 @@ export function useDrizzleContext<
 		<TTableName extends string & ValidTableNames<TSchema>>(
 			tableName: TTableName,
 		) => {
-			// biome-ignore lint/correctness/useHookAtTopLevel: useCollection is a hook
 			return useCollectionImpl(typedContext, tableName);
 		},
 		[typedContext],

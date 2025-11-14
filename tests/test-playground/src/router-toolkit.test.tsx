@@ -62,6 +62,7 @@ describe("formAction", () => {
 		request: createMockRequest(formData),
 		params: {},
 		context: {},
+		unstable_pattern: "match",
 	});
 
 	it("should successfully validate and process form data", async () => {

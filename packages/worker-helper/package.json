@@ -56,7 +56,6 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"@sqlite.org/sqlite-wasm": "^3.51.0-build1",
 		"zod": "catalog:"
 	},
 	"devDependencies": {
