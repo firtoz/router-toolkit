@@ -30,13 +30,15 @@ export async function migrateIndexedDBWithFunctions(
 ): Promise<IDBDatabase> {
 	if (debug) {
 		console.log(
-			`[${new Date().toISOString()}] [IndexedDBMigrator] starting migration for database: ${dbName}`,
+			`[${new Date().toISOString()}] [PERF] IndexedDB migrator start for ${dbName}`,
 		);
 	}
 
 	// First, open the database to check which migrations have been applied
 	const currentDb = await openDatabaseForMigrationCheck(dbName);
+
 	const appliedMigrations = await getAppliedMigrations(currentDb);
+
 	const latestAppliedIdx =
 		appliedMigrations.length > 0
 			? Math.max(...appliedMigrations.map((m) => m.id))
@@ -44,7 +46,7 @@ export async function migrateIndexedDBWithFunctions(
 
 	if (debug) {
 		console.log(
-			`[${new Date().toISOString()}] [IndexedDBMigrator] latest applied migration index: ${latestAppliedIdx}`,
+			`[${new Date().toISOString()}] [PERF] Latest applied migration index: ${latestAppliedIdx} (checked ${appliedMigrations.length} migrations)`,
 		);
 	}
 
@@ -56,17 +58,23 @@ export async function migrateIndexedDBWithFunctions(
 	if (pendingMigrations.length === 0) {
 		if (debug) {
 			console.log(
-				`[${new Date().toISOString()}] [IndexedDBMigrator] no pending migrations`,
+				`[${new Date().toISOString()}] [PERF] No pending migrations - database is up to date`,
 			);
 		}
 		currentDb.close();
 		// Re-open with correct version
-		return await openDatabase(dbName, migrations.length);
+		const db = await openDatabase(dbName, migrations.length);
+		if (debug) {
+			console.log(
+				`[${new Date().toISOString()}] [PERF] Migrator complete (no migrations needed)`,
+			);
+		}
+		return db;
 	}
 
 	if (debug) {
 		console.log(
-			`[${new Date().toISOString()}] [IndexedDBMigrator] pending migrations: ${pendingMigrations.length}`,
+			`[${new Date().toISOString()}] [PERF] Found ${pendingMigrations.length} pending migrations to apply`,
 		);
 	}
 
@@ -80,7 +88,9 @@ export async function migrateIndexedDBWithFunctions(
 		const request = indexedDB.open(dbName, targetVersion);
 
 		request.onerror = () => reject(request.error);
-		request.onsuccess = () => resolve(request.result);
+		request.onsuccess = () => {
+			resolve(request.result);
+		};
 
 		request.onupgradeneeded = async (event) => {
 			const db = (event.target as IDBOpenDBRequest).result;
@@ -93,7 +103,7 @@ export async function migrateIndexedDBWithFunctions(
 
 			if (debug) {
 				console.log(
-					`[${new Date().toISOString()}] [IndexedDBMigrator] upgrade needed from version ${event.oldVersion} to ${event.newVersion}`,
+					`[${new Date().toISOString()}] [PERF] Upgrade started: v${event.oldVersion} → v${event.newVersion}`,
 				);
 			}
 
@@ -107,13 +117,18 @@ export async function migrateIndexedDBWithFunctions(
 					migrationStore.createIndex("appliedAt", "appliedAt", {
 						unique: false,
 					});
+					if (debug) {
+						console.log(
+							`[${new Date().toISOString()}] [PERF] Created migrations tracking store`,
+						);
+					}
 				}
 
 				// Apply each pending migration
 				for (const { fn, idx } of pendingMigrations) {
 					if (debug) {
 						console.log(
-							`[${new Date().toISOString()}] [IndexedDBMigrator] applying migration ${idx}`,
+							`[${new Date().toISOString()}] [PERF] Applying migration ${idx}...`,
 						);
 					}
 
@@ -126,11 +141,17 @@ export async function migrateIndexedDBWithFunctions(
 						id: idx,
 						appliedAt: Date.now(),
 					});
+
+					if (debug) {
+						console.log(
+							`[${new Date().toISOString()}] [PERF] Migration ${idx} complete`,
+						);
+					}
 				}
 
 				if (debug) {
 					console.log(
-						`[${new Date().toISOString()}] [IndexedDBMigrator] all migrations applied successfully`,
+						`[${new Date().toISOString()}] [PERF] All ${pendingMigrations.length} migrations applied successfully`,
 					);
 				}
 			} catch (error) {
@@ -140,6 +161,12 @@ export async function migrateIndexedDBWithFunctions(
 			}
 		};
 	});
+
+	if (debug) {
+		console.log(
+			`[${new Date().toISOString()}] [PERF] Migrator complete - database ready`,
+		);
+	}
 
 	return db;
 }
@@ -152,8 +179,12 @@ async function openDatabaseForMigrationCheck(
 ): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open(dbName);
-		request.onerror = () => reject(request.error);
-		request.onsuccess = () => resolve(request.result);
+		request.onerror = () => {
+			reject(request.error);
+		};
+		request.onsuccess = () => {
+			resolve(request.result);
+		};
 	});
 }
 
@@ -166,8 +197,12 @@ async function openDatabase(
 ): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open(dbName, version);
-		request.onerror = () => reject(request.error);
-		request.onsuccess = () => resolve(request.result);
+		request.onerror = () => {
+			reject(request.error);
+		};
+		request.onsuccess = () => {
+			resolve(request.result);
+		};
 	});
 }
 
@@ -177,16 +212,24 @@ async function openDatabase(
 async function getAppliedMigrations(
 	db: IDBDatabase,
 ): Promise<MigrationRecord[]> {
+	const dbName = db.name;
+
 	if (!db.objectStoreNames.contains(MIGRATIONS_STORE)) {
 		return [];
 	}
 
 	return new Promise((resolve, reject) => {
 		const transaction = db.transaction(MIGRATIONS_STORE, "readonly");
+
 		const store = transaction.objectStore(MIGRATIONS_STORE);
+
 		const request = store.getAll();
 
-		request.onerror = () => reject(request.error);
-		request.onsuccess = () => resolve(request.result);
+		request.onerror = () => {
+			reject(request.error);
+		};
+		request.onsuccess = () => {
+			resolve(request.result);
+		};
 	});
 }

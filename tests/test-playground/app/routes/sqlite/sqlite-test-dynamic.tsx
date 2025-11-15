@@ -1,5 +1,5 @@
 import type { RoutePath } from "@firtoz/router-toolkit";
-import { DrizzleProvider } from "@firtoz/drizzle-sqlite-wasm";
+import { DrizzleSqliteProvider } from "@firtoz/drizzle-sqlite-wasm";
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 import * as schema from "test-schema/schema";
 import migrations from "test-schema/drizzle/migrations";
@@ -16,7 +16,6 @@ export default function SqliteTestDynamic() {
 
 	// Mark component mount start
 	useEffect(() => {
-		performance.mark(`sqlite-test-${dbName}-mount-start`);
 		console.log(`[PERF] Component mount start for ${dbName}`);
 	}, [dbName]);
 
@@ -27,7 +26,7 @@ export default function SqliteTestDynamic() {
 	}, []);
 
 	return (
-		<DrizzleProvider
+		<DrizzleSqliteProvider
 			key={dbName}
 			worker={SqliteWorker}
 			dbName={`${dbName}.db`}
@@ -35,7 +34,7 @@ export default function SqliteTestDynamic() {
 			migrations={migrations}
 		>
 			{mounted && <TodoList dbName={dbName} />}
-		</DrizzleProvider>
+		</DrizzleSqliteProvider>
 	);
 }
 

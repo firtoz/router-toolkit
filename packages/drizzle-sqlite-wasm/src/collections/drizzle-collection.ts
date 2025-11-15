@@ -14,7 +14,6 @@ import {
 	sql,
 	type BuildColumns,
 	type Table,
-	type SQL,
 	gt,
 	gte,
 	lt,
@@ -29,6 +28,8 @@ import {
 	inArray,
 	asc,
 	desc,
+	SQL,
+	getTableColumns,
 } from "drizzle-orm";
 import {
 	integer,
@@ -42,7 +43,7 @@ import {
 	type SQLiteTableExtraConfigValue,
 	type SQLiteInsertValue,
 } from "drizzle-orm/sqlite-core";
-import { createSelectSchema } from "drizzle-zod";
+import { createSelectSchema } from "drizzle-valibot";
 import type {
 	Branded,
 	IdType,
@@ -59,17 +60,22 @@ export { makeId };
 export const idColumn = text("id").primaryKey().$type<IdType>();
 
 const createTableIdColumn = <TTableName extends string>() =>
-	text("id").primaryKey().$type<TableId<TTableName>>();
+	text("id")
+		.primaryKey()
+		.$type<TableId<TTableName>>()
+		.$defaultFn(() => {
+			return crypto.randomUUID() as TableId<TTableName>;
+		});
 // Use unixepoch with 'subsec' modifier for millisecond precision timestamps
 export const createdAtColumn = integer("createdAt", { mode: "timestamp" })
-	.default(sql`(cast(unixepoch('now', 'subsec') * 1000 as integer))`)
+	.$defaultFn(() => new Date())
 	.notNull();
 export const updatedAtColumn = integer("updatedAt", { mode: "timestamp" })
-	.default(sql`(cast(unixepoch('now', 'subsec') * 1000 as integer))`)
+	.$defaultFn(() => new Date())
 	.notNull();
 export const deletedAtColumn = integer("deletedAt", {
 	mode: "timestamp",
-}).default(sql`NULL`);
+});
 
 export const syncableTable = <
 	TTableName extends string,
@@ -96,7 +102,7 @@ export const syncableTable = <
 	) => SQLiteTableExtraConfigValue[],
 ) => {
 	const tableIdColumn = createTableIdColumn<TTableName>();
-	return sqliteTable(
+	const table = sqliteTable(
 		tableName,
 		{
 			id: tableIdColumn,
@@ -107,6 +113,29 @@ export const syncableTable = <
 		},
 		extraConfig,
 	);
+
+	const tableColumns = getTableColumns(table);
+
+	// console.log("table:", table);
+
+	for (const columnName in tableColumns) {
+		const column = tableColumns[columnName];
+
+		let defaultValue: unknown | undefined;
+		if (column.defaultFn) {
+			defaultValue = column.defaultFn();
+		} else if (column.default !== undefined) {
+			defaultValue = column.default;
+		}
+
+		if (defaultValue instanceof SQL) {
+			throw new Error(
+				`Default value for column ${tableName}.${columnName} is a SQL expression, which is not supported for IndexedDB`,
+			);
+		}
+	}
+
+	return table;
 };
 
 type TableWithRequiredFields = SQLiteTableWithColumns<

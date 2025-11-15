@@ -11,6 +11,7 @@ export default [
 	...prefix("sqlite", [
 		route("sqlite-test", "routes/sqlite/sqlite-test.tsx"),
 		route("sqlite-test/:dbName", "routes/sqlite/sqlite-test-dynamic.tsx"),
+		route("indexeddb-test", "routes/sqlite/indexeddb-test.tsx"),
 		route(
 			"indexeddb-migration-test",
 			"routes/sqlite/indexeddb-migration-test.tsx",

@@ -11,15 +11,20 @@ import {
 	parseOrderByExpression,
 	DeduplicatedLoadSubset,
 } from "@tanstack/db";
-import type { Table } from "drizzle-orm";
-import { createSelectSchema } from "drizzle-zod";
-import type { SelectSchema } from "./collection-utils";
+import { getTableColumns, SQL, type Table } from "drizzle-orm";
+import { createInsertSchema } from "drizzle-valibot";
+import * as v from "valibot";
+
+import type { IdOf, SelectSchema, InsertSchema } from "./collection-utils";
+
+// biome-ignore lint/suspicious/noExplicitAny: intentional
+type AnyId = IdOf<any>;
 
 /**
  * Type for items stored in IndexedDB (must have required sync fields)
  */
 export type IndexedDBSyncItem = {
-	id: string;
+	id: AnyId;
 	createdAt: Date;
 	updatedAt: Date;
 	deletedAt: Date | null;
@@ -28,9 +33,13 @@ export type IndexedDBSyncItem = {
 
 export interface IndexedDBCollectionConfig<TTable extends Table> {
 	/**
-	 * The IndexedDB database instance
+	 * Ref to the IndexedDB database instance
 	 */
-	indexedDB: IDBDatabase;
+	indexedDBRef: React.RefObject<IDBDatabase | null>;
+	/**
+	 * The database name (for perf markers)
+	 */
+	dbName: string;
 	/**
 	 * The Drizzle table definition (used for schema and type inference only)
 	 */
@@ -187,7 +196,9 @@ function getAllFromStore(
 ): Promise<IndexedDBSyncItem[]> {
 	return new Promise((resolve, reject) => {
 		const transaction = db.transaction(storeName, "readonly");
+
 		const store = transaction.objectStore(storeName);
+
 		const request = store.getAll();
 
 		request.onsuccess = () => {
@@ -212,8 +223,11 @@ function getAllFromIndex(
 ): Promise<IndexedDBSyncItem[]> {
 	return new Promise((resolve, reject) => {
 		const transaction = db.transaction(storeName, "readonly");
+
 		const store = transaction.objectStore(storeName);
+
 		const index = store.index(indexName);
+
 		const request = keyRange ? index.getAll(keyRange) : index.getAll();
 
 		request.onsuccess = () => {
@@ -266,6 +280,7 @@ function tryExtractIndexedQuery(
 		}
 
 		// Convert operator to IndexedDB key range
+
 		let keyRange: IDBKeyRange | null = null;
 
 		switch (comparison.operator) {
@@ -295,6 +310,7 @@ function tryExtractIndexedQuery(
 		return { fieldName, indexName, keyRange };
 	} catch {
 		// If extractSimpleComparisons fails, it's a complex query
+
 		return null;
 	}
 }
@@ -365,11 +381,13 @@ function deleteFromStoreInTransaction(
 function getFromStore(
 	db: IDBDatabase,
 	storeName: string,
-	id: string,
+	id: AnyId,
 ): Promise<IndexedDBSyncItem | undefined> {
 	return new Promise((resolve, reject) => {
 		const transaction = db.transaction(storeName, "readonly");
+
 		const store = transaction.objectStore(storeName);
+
 		const request = store.get(id);
 
 		request.onsuccess = () => {
@@ -387,7 +405,7 @@ function getFromStore(
  */
 function getFromStoreInTransaction(
 	store: IDBObjectStore,
-	id: string,
+	id: AnyId,
 ): Promise<IndexedDBSyncItem | undefined> {
 	return new Promise((resolve, reject) => {
 		const request = store.get(id);
@@ -446,11 +464,15 @@ function discoverIndexes(
 	storeName: string,
 ): Record<string, string> {
 	const transaction = db.transaction(storeName, "readonly");
+
 	const store = transaction.objectStore(storeName);
+
 	const indexMap: Record<string, string> = {};
 
 	// Iterate through all indexes in the store
-	for (const indexName of Array.from(store.indexNames)) {
+	const indexNames = Array.from(store.indexNames);
+
+	for (const indexName of indexNames) {
 		const index = store.index(indexName);
 		const keyPath = index.keyPath;
 
@@ -470,21 +492,14 @@ function discoverIndexes(
 export function indexedDBCollectionOptions<const TTable extends Table>(
 	config: IndexedDBCollectionConfig<TTable>,
 ) {
-	// Auto-discover indexes from the IndexedDB store
-	// These are created by Drizzle migrations based on index() definitions in your schema
-	const discoveredIndexes = discoverIndexes(config.indexedDB, config.storeName);
-
-	if (config.debug && Object.keys(discoveredIndexes).length > 0) {
-		console.log(
-			`[IndexedDB Collection] Auto-discovered ${Object.keys(discoveredIndexes).length} indexes for ${config.storeName}:`,
-			discoveredIndexes,
-		);
-	}
+	// Defer index discovery until the database is ready
+	let discoveredIndexes: Record<string, string> = {};
+	let indexesDiscovered = false;
 
 	type CollectionType = CollectionConfig<
 		InferSchemaOutput<SelectSchema<TTable>>,
 		string,
-		SelectSchema<TTable>
+		InsertSchema<TTable>
 	>;
 
 	const table = config.table;
@@ -499,13 +514,45 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 	>["sync"] = (params) => {
 		const { begin, write, commit, markReady } = params;
 
-		const initialSync = async () => {
+		// Discover indexes once when the database is ready, regardless of sync mode
+		const discoverIndexesOnce = async () => {
 			await config.readyPromise;
+
+			if (!indexesDiscovered) {
+				discoveredIndexes = discoverIndexes(
+					// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+					config.indexedDBRef.current!,
+					config.storeName,
+				);
+
+				indexesDiscovered = true;
+
+				if (config.debug && Object.keys(discoveredIndexes).length > 0) {
+					console.log(
+						`[IndexedDB Collection] Auto-discovered ${Object.keys(discoveredIndexes).length} indexes for ${config.storeName}:`,
+						discoveredIndexes,
+					);
+				}
+			}
+		};
+
+		const initialSync = async () => {
+			await discoverIndexesOnce();
 
 			try {
 				begin();
 
-				const items = await getAllFromStore(config.indexedDB, config.storeName);
+				const items = await getAllFromStore(
+					// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+					config.indexedDBRef.current!,
+					config.storeName,
+				);
+
+				if (config.debug) {
+					console.log(
+						`[IndexedDB Collection] Initial sync: loading ${items.length} items from ${config.storeName}`,
+					);
+				}
 
 				for (const item of items) {
 					write({
@@ -523,69 +570,55 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 		if (config.syncMode === "eager" || !config.syncMode) {
 			initialSync();
 		} else {
-			markReady();
+			// For non-eager sync modes, still discover indexes but don't load data
+			discoverIndexesOnce().then(() => markReady());
 		}
 
 		insertListener = async (params) => {
-			begin();
-			for (const item of params.transaction.mutations) {
-				if (config.debug) {
-					console.log(
-						`[${new Date().toISOString()}] insertListener write`,
-						item,
-					);
-				}
-				write({
-					type: "insert",
-					value: item.modified,
-				});
-			}
-			commit();
-
 			try {
 				// Use a single transaction for all inserts
-				const transaction = config.indexedDB.transaction(
+				// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+				const transaction = config.indexedDBRef.current!.transaction(
 					config.storeName,
 					"readwrite",
 				);
 				const store = transaction.objectStore(config.storeName);
 
-				const itemsToInsert: IndexedDBSyncItem[] = [];
+				// Optimistically update the reactive store while parallelizing IndexedDB writes
+				begin();
+				const addPromises: Promise<void>[] = [];
 
 				for (const item of params.transaction.mutations) {
-					const now = new Date();
-					const itemToInsert = {
-						...item.modified,
-						createdAt: now,
-						updatedAt: now,
-					} as IndexedDBSyncItem;
+					// Parse and apply defaults using valibot
+					// const itemToInsert = v.parse(insertSchemaWithDefaults, item.modified);
+					const itemToInsert = item.modified;
 
-					itemsToInsert.push(itemToInsert);
-					await addToStoreInTransaction(store, itemToInsert);
-				}
-
-				// Wait for transaction to complete
-				await commitTransaction(transaction);
-
-				// Read back the inserted items
-				begin();
-				for (const itemToInsert of itemsToInsert) {
-					const inserted = await getFromStore(
-						config.indexedDB,
-						config.storeName,
-						itemToInsert.id,
-					);
-
-					if (inserted) {
-						write({
-							type: "update",
-							value: inserted as unknown as InferSchemaOutput<
-								SelectSchema<TTable>
-							>,
-						});
+					if (config.debug) {
+						console.log(
+							`[${new Date().toISOString()}] insertListener write`,
+							itemToInsert,
+						);
 					}
+
+					// Write to reactive store immediately (optimistic)
+					write({
+						type: "insert",
+						value: itemToInsert as unknown as InferSchemaOutput<
+							SelectSchema<TTable>
+						>,
+					});
+
+					// Add to IndexedDB in parallel (don't await yet)
+					addPromises.push(
+						addToStoreInTransaction(store, itemToInsert as IndexedDBSyncItem),
+					);
 				}
+
 				commit();
+
+				// Wait for all IndexedDB writes to complete
+				await Promise.all(addPromises);
+				await commitTransaction(transaction);
 			} catch (error) {
 				begin();
 				for (const item of params.transaction.mutations) {
@@ -618,7 +651,8 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 
 			try {
 				// Use a single transaction for all updates
-				const transaction = config.indexedDB.transaction(
+				// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+				const transaction = config.indexedDBRef.current!.transaction(
 					config.storeName,
 					"readwrite",
 				);
@@ -649,7 +683,8 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 				begin();
 				for (const key of updatedKeys) {
 					const updated = await getFromStore(
-						config.indexedDB,
+						// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+						config.indexedDBRef.current!,
 						config.storeName,
 						key,
 					);
@@ -697,7 +732,8 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 
 			try {
 				// Use a single transaction for all deletes
-				const transaction = config.indexedDB.transaction(
+				// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+				const transaction = config.indexedDBRef.current!.transaction(
 					config.storeName,
 					"readwrite",
 				);
@@ -727,7 +763,26 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 		// Create deduplicated loadSubset wrapper to avoid redundant queries
 		const loadSubsetDedupe = new DeduplicatedLoadSubset({
 			loadSubset: async (options) => {
+				const loadId = Math.random().toString(36).substring(7);
+
 				await config.readyPromise;
+
+				// Ensure indexes are discovered before we try to use them
+				if (!indexesDiscovered) {
+					discoveredIndexes = discoverIndexes(
+						// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+						config.indexedDBRef.current!,
+						config.storeName,
+					);
+					indexesDiscovered = true;
+
+					if (config.debug && Object.keys(discoveredIndexes).length > 0) {
+						console.log(
+							`[IndexedDB Collection] Auto-discovered ${Object.keys(discoveredIndexes).length} indexes for ${config.storeName}:`,
+							discoveredIndexes,
+						);
+					}
+				}
 
 				begin();
 
@@ -746,25 +801,39 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 								`[${new Date().toISOString()}] Using indexed query on ${indexedQuery.indexName}`,
 							);
 						}
+
 						items = await getAllFromIndex(
-							config.indexedDB,
+							// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+							config.indexedDBRef.current!,
 							config.storeName,
 							indexedQuery.indexName,
 							indexedQuery.keyRange,
 						);
 					} else {
 						// Fall back to getting all items
-						items = await getAllFromStore(config.indexedDB, config.storeName);
+
+						items = await getAllFromStore(
+							// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+							config.indexedDBRef.current!,
+							config.storeName,
+						);
 
 						// Apply where filter in memory
 						if (options.where) {
 							const whereExpression = options.where;
+							const originalCount = items.length;
 							items = items.filter((item) =>
 								evaluateExpression(
 									whereExpression,
 									item as Record<string, unknown>,
 								),
 							);
+
+							if (config.debug) {
+								console.log(
+									`[IndexedDB Collection] Filtered ${originalCount} → ${items.length} items`,
+								);
+							}
 						}
 					}
 
@@ -807,6 +876,12 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 					}
 
 					commit();
+
+					if (config.debug) {
+						console.log(
+							`[IndexedDB Collection] Load subset ${loadId} complete: ${items.length} items`,
+						);
+					}
 				} catch (error) {
 					commit();
 					throw error;
@@ -825,8 +900,65 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 		} satisfies SyncConfigRes;
 	};
 
-	return {
-		schema: createSelectSchema(table),
+	const insertSchema = createInsertSchema(table);
+	const columns = getTableColumns(table);
+
+	for (const columnName in columns) {
+		const column = columns[columnName];
+
+		let defaultValue: unknown | undefined;
+		if (column.defaultFn) {
+			defaultValue = column.defaultFn();
+		} else if (column.default !== undefined) {
+			defaultValue = column.default;
+		}
+
+		if (defaultValue instanceof SQL) {
+			throw new Error(
+				`Default value for column ${columnName} is a SQL expression, which is not supported for IndexedDB`,
+			);
+		}
+	}
+
+	// Augment the schema to handle defaultFn and defaults
+	const insertSchemaWithDefaults = v.pipe(
+		insertSchema,
+		v.transform((input) => {
+			const result = { ...input } as Record<string, unknown>;
+
+			for (const columnName in columns) {
+				const column = columns[columnName];
+				if (result[columnName] !== undefined) continue;
+
+				let defaultValue: unknown | undefined;
+				if (column.defaultFn) {
+					defaultValue = column.defaultFn();
+				} else if (column.default !== undefined) {
+					defaultValue = column.default;
+				}
+
+				if (defaultValue instanceof SQL) {
+					throw new Error(
+						`Default value for column ${columnName} is a SQL expression, which is not supported for IndexedDB`,
+					);
+				}
+
+				if (defaultValue !== undefined) {
+					result[columnName] = defaultValue;
+					continue;
+				}
+
+				if (column.notNull) {
+					throw new Error(`Column ${columnName} is not nullable`);
+				}
+			}
+
+			return result;
+		}),
+	);
+
+	const result = {
+		schema: insertSchemaWithDefaults as InsertSchema<TTable>,
 		getKey: (item: InferSchemaOutput<SelectSchema<TTable>>) => {
 			const id = (item as { id: string }).id;
 			return id;
@@ -863,4 +995,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 		},
 		syncMode: config.syncMode,
 	} satisfies CollectionType;
+
+	return result;
 }

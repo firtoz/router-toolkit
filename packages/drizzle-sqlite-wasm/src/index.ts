@@ -19,14 +19,27 @@ export type {
 	IndexedDBSyncItem,
 } from "./collections/indexeddb-collection";
 export { useDrizzle } from "./hooks/useDrizzle";
+// SQLite WASM Provider
 export {
-	DrizzleProvider,
-	DrizzleContext,
+	DrizzleSqliteProvider,
+	DrizzleSqliteContext,
 	useCollection,
-} from "./context/DrizzleProvider";
-export type { DrizzleContextValue } from "./context/DrizzleProvider";
-export { useDrizzleContext } from "./context/useDrizzleContext";
-export type { UseDrizzleContextReturn } from "./context/useDrizzleContext";
+} from "./context/DrizzleSqliteProvider";
+export type { DrizzleSqliteContextValue } from "./context/DrizzleSqliteProvider";
+export { useDrizzleSqlite as useDrizzleContext } from "./context/useDrizzleSqlite";
+export type { UseDrizzleContextReturn } from "./context/useDrizzleSqlite";
+// IndexedDB Provider
+export {
+	DrizzleIndexedDBProvider,
+	DrizzleIndexedDBContext,
+	useIndexedDBCollection,
+} from "./context/DrizzleIndexedDBProvider";
+export type {
+	DrizzleIndexedDBContextValue,
+	IndexedDBMigrationFunction,
+} from "./context/DrizzleIndexedDBProvider";
+export { useDrizzleIndexedDB as useDrizzleIndexedDBContext } from "./context/useDrizzleIndexedDB";
+export type { UseDrizzleIndexedDBContextReturn } from "./context/useDrizzleIndexedDB";
 export {
 	getPerformanceMetrics,
 	getPerformanceMarks,

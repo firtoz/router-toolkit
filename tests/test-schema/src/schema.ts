@@ -22,9 +22,7 @@ export const todoTable = syncableTable(
 		completed: integer("completed", { mode: "boolean" })
 			.notNull()
 			.default(false),
-		// Use TableId for self-references to avoid circular dependency
 		parentId: integer("parent_id").$type<TableId<"todo">>(),
-		// Use IdOf for references to other tables
 		userId: integer("user_id").$type<IdOf<typeof userTable>>(),
 	},
 	(t) => [

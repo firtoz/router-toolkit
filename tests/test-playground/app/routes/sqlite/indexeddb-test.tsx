@@ -1,16 +1,21 @@
-import { fail, success, type RoutePath } from "@firtoz/router-toolkit";
+import {
+	fail,
+	success,
+	type MaybeError,
+	type RoutePath,
+} from "@firtoz/router-toolkit";
 import { useCallback, useEffect, useState } from "react";
 import {
-	DrizzleSqliteProvider,
-	useDrizzleContext,
+	DrizzleIndexedDBProvider,
+	useDrizzleIndexedDBContext as useDrizzleIndexedDB,
 	makeId,
 } from "@firtoz/drizzle-sqlite-wasm";
-import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
+import { migrateIndexedDBWithFunctions } from "@firtoz/drizzle-indexeddb";
 import * as schema from "test-schema/schema";
-import migrations from "test-schema/drizzle/migrations";
+import { migrations } from "test-schema/drizzle/indexeddb-migrations";
 import { useLiveQuery } from "@tanstack/react-db";
 import { formatDateWithMs } from "~/utils/date-format";
-import type { Route } from "./+types/sqlite-test";
+import type { Route } from "./+types/indexeddb-test";
 import { data, useLoaderData } from "react-router";
 
 type Todo = typeof schema.todoTable.$inferSelect;
@@ -29,7 +34,10 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 		return data(fail("No locale found"), { status: 400 });
 	}
 
-	return success({ locale });
+	return success({
+		locale,
+		todos: [] satisfies Todo[],
+	});
 };
 
 const TodoItem = ({ todo, onToggleComplete, onDelete }: TodoItemProps) => {
@@ -38,6 +46,7 @@ const TodoItem = ({ todo, onToggleComplete, onDelete }: TodoItemProps) => {
 	if (data.success) {
 		locale = data.result.locale;
 	}
+
 	return (
 		<div
 			className={`rounded-lg shadow-md border-2 transition-all hover:shadow-lg ${
@@ -117,35 +126,10 @@ const TodoItem = ({ todo, onToggleComplete, onDelete }: TodoItemProps) => {
 	);
 };
 
-const TodoList = () => {
-	const { useCollection } = useDrizzleContext<typeof schema>();
+const InnerTodoList = ({ todos }: { todos: Todo[] }) => {
+	const { useCollection } = useDrizzleIndexedDB<typeof schema>();
 
 	const todoCollection = useCollection("todoTable");
-
-	const { data: todos } = useLiveQuery((q) =>
-		q
-			.from({ todo: todoCollection })
-			.orderBy(({ todo }) => todo.createdAt, "asc"),
-	);
-
-	const [newTodo, setNewTodo] = useState("");
-
-	const handleAddTodo = useCallback(() => {
-		const trimmedTodo = newTodo.trim();
-		if (trimmedTodo) {
-			todoCollection.insert({
-				id: makeId(schema.todoTable, crypto.randomUUID()),
-				title: trimmedTodo,
-				completed: false,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-				deletedAt: null,
-				parentId: null,
-				userId: null,
-			});
-			setNewTodo("");
-		}
-	}, [newTodo, todoCollection]);
 
 	const handleToggleComplete = useCallback(
 		(id: Todo["id"]) => {
@@ -178,10 +162,83 @@ const TodoList = () => {
 	);
 
 	return (
+		<>
+			{todos?.map((todo) => (
+				<TodoItem
+					key={String(todo.id)}
+					todo={todo}
+					onToggleComplete={handleToggleComplete}
+					onDelete={handleDeleteTodo}
+				/>
+			))}
+		</>
+	);
+};
+
+export default function IndexedDBTest() {
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
+	if (!mounted) {
+		return null;
+	}
+
+	return (
+		<DrizzleIndexedDBProvider
+			dbName="test-indexeddb.db"
+			schema={schema}
+			migrations={migrations}
+			migrateFunction={migrateIndexedDBWithFunctions}
+			debug={true}
+		>
+			<TodoList />
+		</DrizzleIndexedDBProvider>
+	);
+}
+
+const TodoList = () => {
+	const { useCollection } = useDrizzleIndexedDB<typeof schema>();
+
+	const todoCollection = useCollection("todoTable");
+
+	const { data: todos, isLoading } = useLiveQuery((q) => {
+		return q
+			.from({
+				todo: todoCollection,
+			})
+			.orderBy(({ todo }) => {
+				return todo.createdAt;
+			}, "asc");
+	});
+
+	const [newTodo, setNewTodo] = useState("");
+
+	const handleAddTodo = useCallback(() => {
+		const trimmedTodo = newTodo.trim();
+		if (trimmedTodo) {
+			todoCollection.insert({
+				title: trimmedTodo,
+			});
+
+			setNewTodo("");
+		}
+	}, [newTodo, todoCollection]);
+
+	if (isLoading) {
+		return null;
+	}
+
+	return (
 		<div className="max-w-4xl mx-auto p-6">
-			<h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">
-				Todos
+			<h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+				IndexedDB Todos
 			</h1>
+			<p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+				Using IndexedDB with Drizzle collections
+			</p>
 
 			{/* Input Section */}
 			<div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border-2 border-gray-200 dark:border-gray-700 p-4">
@@ -211,40 +268,11 @@ const TodoList = () => {
 
 			{/* Todos Grid */}
 			<div className="grid gap-4">
-				{todos?.map((todo) => (
-					<TodoItem
-						key={String(todo.id)}
-						todo={todo}
-						onToggleComplete={handleToggleComplete}
-						onDelete={handleDeleteTodo}
-					/>
-				))}
+				<InnerTodoList todos={todos ?? []} />
 			</div>
 		</div>
 	);
 };
 
-export default function SqliteTest() {
-	const [mounted, setMounted] = useState(false);
-
-	useEffect(() => {
-		setMounted(true);
-	}, []);
-
-	if (!mounted) {
-		return null;
-	}
-
-	return (
-		<DrizzleSqliteProvider
-			worker={SqliteWorker}
-			dbName="test.db"
-			schema={schema}
-			migrations={migrations}
-		>
-			<TodoList />
-		</DrizzleSqliteProvider>
-	);
-}
-
-export const route: RoutePath<"/sqlite/sqlite-test"> = "/sqlite/sqlite-test";
+export const route: RoutePath<"/sqlite/indexeddb-test"> =
+	"/sqlite/indexeddb-test";

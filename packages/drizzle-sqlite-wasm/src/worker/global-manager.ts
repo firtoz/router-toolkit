@@ -32,7 +32,7 @@ export function initializeSqliteWorker(
 	}
 
 	// Start initialization
-	performance.mark("sqlite-global-init-start");
+
 	console.log("[PERF] Starting global SQLite worker initialization");
 
 	initPromise = (async () => {
@@ -43,12 +43,6 @@ export function initializeSqliteWorker(
 		// Wait for the worker to actually send its Ready message
 		await manager.ready;
 
-		performance.mark("sqlite-global-init-end");
-		performance.measure(
-			"sqlite-global-init",
-			"sqlite-global-init-start",
-			"sqlite-global-init-end",
-		);
 		console.log("[PERF] Global SQLite worker manager ready");
 
 		return manager;

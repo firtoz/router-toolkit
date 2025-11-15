@@ -15,7 +15,6 @@ export const TodoList = ({ dbName }: { dbName: string }) => {
 
 	// Mark TodoList render start and setup performance observer
 	if (!renderStartRef.current) {
-		performance.mark(`${dbName}-todolist-render-start`);
 		console.log(`[PERF] TodoList render start for ${dbName}`);
 		renderStartRef.current = true;
 
@@ -36,20 +35,13 @@ export const TodoList = ({ dbName }: { dbName: string }) => {
 
 	const { useCollection } = useDrizzleContext<typeof schema>();
 
-	performance.mark(`${dbName}-collection-request`);
 	const todoCollection = useCollection("todoTable");
-	performance.mark(`${dbName}-collection-ready`);
-	performance.measure(
-		`${dbName}-collection-get`,
-		`${dbName}-collection-request`,
-		`${dbName}-collection-ready`,
-	);
+
 	console.log(`[PERF] Collection ready for ${dbName}`);
 
 	const firstQueryRef = useRef(false);
 	const { data: todos } = useLiveQuery((q) => {
 		if (!firstQueryRef.current) {
-			performance.mark(`${dbName}-first-query-start`);
 			console.log(`[PERF] First query start for ${dbName}`);
 		}
 		return q.from({ todo: todoCollection }).orderBy(({ todo }) => {
@@ -60,20 +52,10 @@ export const TodoList = ({ dbName }: { dbName: string }) => {
 	// Track when first query completes
 	useEffect(() => {
 		if (todos && !firstQueryRef.current) {
-			performance.mark(`${dbName}-first-query-complete`);
-			performance.measure(
-				`${dbName}-first-query`,
-				`${dbName}-first-query-start`,
-				`${dbName}-first-query-complete`,
-			);
 			console.log(`[PERF] First query complete for ${dbName}`);
 
 			// Create end-to-end measurement
-			performance.measure(
-				`${dbName}-end-to-end`,
-				`sqlite-test-${dbName}-mount-start`,
-				`${dbName}-first-query-complete`,
-			);
+
 			console.log(`[PERF] End-to-end initialization complete for ${dbName}`);
 
 			// Log full performance report after a short delay to let all measures complete

@@ -45,19 +45,11 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 		let mounted = true;
 
 		const init = async () => {
-			performance.mark(`${dbName}-db-instance-request-start`);
 			console.log(`[PERF] Requesting db instance for ${dbName}`);
 
 			// Initialize manager if not already initialized
 			if (!isSqliteWorkerInitialized()) {
-				performance.mark(`${dbName}-lazy-worker-init-start`);
 				await initializeSqliteWorker(WorkerConstructor);
-				performance.mark(`${dbName}-lazy-worker-init-end`);
-				performance.measure(
-					`${dbName}-lazy-worker-init`,
-					`${dbName}-lazy-worker-init-start`,
-					`${dbName}-lazy-worker-init-end`,
-				);
 			}
 
 			// Get manager and create db instance
@@ -67,12 +59,6 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 			const manager = getSqliteWorkerManager();
 			const instance = await manager.getDbInstance(dbName);
 
-			performance.mark(`${dbName}-db-instance-ready`);
-			performance.measure(
-				`${dbName}-db-instance-request`,
-				`${dbName}-db-instance-request-start`,
-				`${dbName}-db-instance-ready`,
-			);
 			console.log(`[PERF] DB instance ready for ${dbName}`);
 
 			if (mounted) {
@@ -138,15 +124,9 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 		console.log(`[DEBUG] ${dbName} - sqliteClient ready, setting up migration`);
 		sqliteClient.onStarted(async () => {
 			try {
-				performance.mark(`${dbName}-migration-start`);
 				console.log(`[PERF] Migration start for ${dbName}`);
 				await customSqliteMigrate(drizzle, migrations);
-				performance.mark(`${dbName}-migration-end`);
-				performance.measure(
-					`${dbName}-migration`,
-					`${dbName}-migration-start`,
-					`${dbName}-migration-end`,
-				);
+
 				console.log(`[PERF] Migration complete for ${dbName}`);
 				resolveRef.current?.();
 			} catch (error) {

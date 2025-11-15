@@ -45,12 +45,7 @@ export class DbInstance implements ISqliteWorkerClient {
 	_setStarted(dbId: DbId) {
 		this.dbId = dbId;
 		this.isStarted = true;
-		performance.mark(`${this.dbName}-db-started`);
-		performance.measure(
-			`${this.dbName}-db-start`,
-			`${this.dbName}-db-start-request`,
-			`${this.dbName}-db-started`,
-		);
+
 		console.log(`[PERF] Database started for ${this.dbName}`);
 
 		// Call all pending callbacks
@@ -175,7 +170,6 @@ export class SqliteWorkerManager extends WorkerClient<
 			this.preparedReject = reject;
 		});
 
-		performance.mark("sqlite-wasm-manager-init");
 		console.log("[PERF] SQLite Worker Manager initialized");
 	}
 
@@ -198,14 +192,13 @@ export class SqliteWorkerManager extends WorkerClient<
 		switch (type) {
 			case SqliteWorkerServerMessageType.Ready:
 				{
-					performance.mark("sqlite-wasm-worker-ready");
 					console.log("[PERF] Worker ready");
 					this.isReady = true;
 					this.readyResolve?.();
 					if (this.debug) {
 						console.log("[SqliteWorkerManager] ready - sending prepare");
 					}
-					performance.mark("sqlite-wasm-prepare-request");
+
 					// First, request preparation (diagnostics)
 					this.send({
 						type: SqliteWorkerClientMessageType.Prepare,
@@ -214,12 +207,6 @@ export class SqliteWorkerManager extends WorkerClient<
 				break;
 			case SqliteWorkerServerMessageType.Prepared:
 				{
-					performance.mark("sqlite-wasm-worker-prepared");
-					performance.measure(
-						"sqlite-wasm-prepare",
-						"sqlite-wasm-prepare-request",
-						"sqlite-wasm-worker-prepared",
-					);
 					console.log("[PERF] Worker prepared");
 					this.isPrepared = true;
 					this.preparedResolve?.();
@@ -290,7 +277,7 @@ export class SqliteWorkerManager extends WorkerClient<
 		this.dbInstances.set(dbName, instance);
 
 		// Start the database
-		performance.mark(`${dbName}-db-start-request`);
+
 		const startRequestId = StartRequestIdSchema.parse(crypto.randomUUID());
 		this.pendingStarts.set(startRequestId, { dbName, instance });
 

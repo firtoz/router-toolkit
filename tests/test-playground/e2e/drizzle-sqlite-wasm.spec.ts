@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
  * E2E tests for @firtoz/drizzle-sqlite-wasm
  *
  * These tests verify that the drizzle-sqlite-wasm package works correctly:
- * - DrizzleProvider: SQLite WASM initialization with schema and migrations
+ * - DrizzleSqliteProvider: SQLite WASM initialization with schema and migrations
  * - useCollection: Type-safe collection access with Drizzle schema
  * - useLiveQuery: Real-time reactive queries with automatic updates
  * - Collection operations: insert, update, delete with persistence
@@ -71,8 +71,8 @@ async function deleteDatabase(page: any, dbName: string) {
 	}, dbName);
 }
 
-test.describe("@firtoz/drizzle-sqlite-wasm - DrizzleProvider & useCollection", () => {
-	test("DrizzleProvider should initialize SQLite WASM database", async ({
+test.describe("@firtoz/drizzle-sqlite-wasm - DrizzleSqliteProvider & useCollection", () => {
+	test("DrizzleSqliteProvider should initialize SQLite WASM database", async ({
 		page,
 	}) => {
 		const dbName = getUniqueDbName("drizzle-provider-init");
@@ -81,7 +81,7 @@ test.describe("@firtoz/drizzle-sqlite-wasm - DrizzleProvider & useCollection", (
 		await page.goto(`/sqlite/sqlite-test/${dbName}`);
 		await page.waitForLoadState("networkidle");
 
-		// Should render the page title (proving DrizzleProvider rendered successfully)
+		// Should render the page title (proving DrizzleSqliteProvider rendered successfully)
 		await expect(page.getByRole("heading", { name: "Todos" })).toBeVisible();
 
 		// Should render the input form (proving useCollection hook is working)

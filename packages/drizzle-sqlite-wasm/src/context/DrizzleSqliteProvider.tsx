@@ -35,30 +35,30 @@ interface CollectionCacheEntry {
 	refCount: number;
 }
 
-export type DrizzleContextValue<TSchema extends Record<string, unknown>> = {
-	drizzle: SqliteRemoteDatabase<TSchema>;
-	getCollection: (
-		tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
-	) => Collection<
-		InferSchemaOutput<
-			GetTableFromSchema<TSchema, typeof tableName>["$inferSelect"]
-		>,
-		string
-	>;
-	incrementRefCount: (
-		tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
-	) => void;
-	decrementRefCount: (
-		tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
-	) => void;
-};
+export type DrizzleSqliteContextValue<TSchema extends Record<string, unknown>> =
+	{
+		drizzle: SqliteRemoteDatabase<TSchema>;
+		getCollection: (
+			tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
+		) => Collection<
+			InferSchemaOutput<
+				GetTableFromSchema<TSchema, typeof tableName>["$inferSelect"]
+			>,
+			string
+		>;
+		incrementRefCount: (
+			tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
+		) => void;
+		decrementRefCount: (
+			tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
+		) => void;
+	};
 
 // biome-ignore lint/suspicious/noExplicitAny: Context needs to accept any schema type
-export const DrizzleContext = createContext<DrizzleContextValue<any> | null>(
-	null,
-);
+export const DrizzleSqliteContext =
+	createContext<DrizzleSqliteContextValue<any> | null>(null);
 
-type DrizzleProviderProps<TSchema extends Record<string, unknown>> =
+type DrizzleSqliteProviderProps<TSchema extends Record<string, unknown>> =
 	PropsWithChildren<{
 		worker: new () => Worker;
 		dbName: string;
@@ -66,16 +66,15 @@ type DrizzleProviderProps<TSchema extends Record<string, unknown>> =
 		migrations: DurableSqliteMigrationConfig;
 	}>;
 
-export function DrizzleProvider<TSchema extends Record<string, unknown>>({
+export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 	children,
 	worker,
 	dbName,
 	schema,
 	migrations,
-}: DrizzleProviderProps<TSchema>) {
+}: DrizzleSqliteProviderProps<TSchema>) {
 	useEffect(() => {
-		performance.mark(`${dbName}-provider-init-start`);
-		console.log(`[PERF] DrizzleProvider init start for ${dbName}`);
+		console.log(`[PERF] DrizzleSqliteProvider init start for ${dbName}`);
 	}, [dbName]);
 
 	const { drizzle, readyPromise } = useDrizzle(
@@ -87,13 +86,7 @@ export function DrizzleProvider<TSchema extends Record<string, unknown>>({
 
 	useEffect(() => {
 		readyPromise.then(() => {
-			performance.mark(`${dbName}-provider-ready`);
-			performance.measure(
-				`${dbName}-provider-init`,
-				`${dbName}-provider-init-start`,
-				`${dbName}-provider-ready`,
-			);
-			console.log(`[PERF] DrizzleProvider ready for ${dbName}`);
+			console.log(`[PERF] DrizzleSqliteProvider ready for ${dbName}`);
 		});
 	}, [readyPromise, dbName]);
 
@@ -104,7 +97,7 @@ export function DrizzleProvider<TSchema extends Record<string, unknown>>({
 	);
 
 	const getCollection = useCallback<
-		DrizzleContextValue<TSchema>["getCollection"]
+		DrizzleSqliteContextValue<TSchema>["getCollection"]
 	>(
 		(
 			tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
@@ -134,7 +127,7 @@ export function DrizzleProvider<TSchema extends Record<string, unknown>>({
 		[drizzle, collections, readyPromise],
 	);
 
-	const incrementRefCount: DrizzleContextValue<TSchema>["incrementRefCount"] =
+	const incrementRefCount: DrizzleSqliteContextValue<TSchema>["incrementRefCount"] =
 		useCallback(
 			(tableName: string) => {
 				const entry = collections.get(tableName);
@@ -148,7 +141,7 @@ export function DrizzleProvider<TSchema extends Record<string, unknown>>({
 			[collections],
 		);
 
-	const decrementRefCount: DrizzleContextValue<TSchema>["decrementRefCount"] =
+	const decrementRefCount: DrizzleSqliteContextValue<TSchema>["decrementRefCount"] =
 		useCallback(
 			(tableName: string) => {
 				const entry = collections.get(tableName);
@@ -168,7 +161,7 @@ export function DrizzleProvider<TSchema extends Record<string, unknown>>({
 			[collections],
 		);
 
-	const contextValue: DrizzleContextValue<TSchema> = useMemo(
+	const contextValue: DrizzleSqliteContextValue<TSchema> = useMemo(
 		() => ({
 			drizzle,
 			getCollection,
@@ -179,9 +172,9 @@ export function DrizzleProvider<TSchema extends Record<string, unknown>>({
 	);
 
 	return (
-		<DrizzleContext.Provider value={contextValue}>
+		<DrizzleSqliteContext.Provider value={contextValue}>
 			{children}
-		</DrizzleContext.Provider>
+		</DrizzleSqliteContext.Provider>
 	);
 }
 
@@ -190,7 +183,7 @@ export function useCollection<
 	TSchema extends Record<string, unknown>,
 	TTableName extends string & ValidTableNames<TSchema>,
 >(
-	context: DrizzleContextValue<TSchema>,
+	context: DrizzleSqliteContextValue<TSchema>,
 	tableName: TTableName,
 ): InferCollectionFromTable<GetTableFromSchema<TSchema, TTableName>> {
 	const { collection, unsubscribe } = useMemo(() => {

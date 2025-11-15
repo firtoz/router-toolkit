@@ -93,9 +93,15 @@ const routerToolkitRoutes = [
 const sqliteRoutes = [
 	{
 		path: href("/sqlite/sqlite-test"),
-		text: "DrizzleProvider + useCollection",
+		text: "DrizzleSqliteProvider + useCollection",
 		description:
 			"SQLite WASM with Drizzle ORM: Real-time queries with live updates using useLiveQuery",
+	},
+	{
+		path: href("/sqlite/indexeddb-test"),
+		text: "DrizzleIndexedDBProvider + useCollection",
+		description:
+			"IndexedDB with Drizzle Collections: Real-time queries with live updates using useLiveQuery",
 	},
 	{
 		path: href("/sqlite/indexeddb-migration-test"),

@@ -1,5 +1,5 @@
 import type { Table } from "drizzle-orm";
-import type { BuildSchema } from "drizzle-zod";
+import type { BuildSchema } from "drizzle-valibot";
 
 /**
  * Utility type for branded IDs
@@ -38,7 +38,6 @@ export function makeId<TTable extends Table>(
 export type SelectSchema<TTable extends Table> = BuildSchema<
 	"select",
 	TTable["_"]["columns"],
-	undefined,
 	undefined
 >;
 
@@ -48,6 +47,5 @@ export type SelectSchema<TTable extends Table> = BuildSchema<
 export type InsertSchema<TTable extends Table> = BuildSchema<
 	"insert",
 	TTable["_"]["columns"],
-	undefined,
 	undefined
 >;

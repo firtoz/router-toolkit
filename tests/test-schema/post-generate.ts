@@ -218,7 +218,11 @@ function generateMigrationCode(
 }
 
 try {
+	const startTime = performance.now();
+	console.log(`[post-generate] Starting migration generation...`);
+
 	// Read the journal
+
 	const journalContent = readFileSync(JOURNAL_PATH, "utf-8");
 	const journal: Journal = JSON.parse(journalContent);
 
@@ -227,6 +231,7 @@ try {
 	// Create output directory
 	if (!existsSync(OUTPUT_DIR)) {
 		mkdirSync(OUTPUT_DIR, { recursive: true });
+		console.log(`[post-generate] Created output directory: ${OUTPUT_DIR}`);
 	}
 
 	// Generate imports for snapshots.ts
@@ -246,6 +251,7 @@ try {
 		const snapshotPath = join(META_DIR, fileName);
 
 		// Load snapshot
+
 		const snapshotContent = readFileSync(snapshotPath, "utf-8");
 		const snapshot: Snapshot = JSON.parse(snapshotContent);
 		snapshots.push(snapshot);
@@ -255,13 +261,13 @@ try {
 		snapshotKeys.push(snapshotKey);
 
 		// Generate migration file
+
 		const prevSnapshot = entry.idx > 0 ? snapshots[entry.idx - 1] : null;
 		const migrationCode = generateMigrationCode(entry, snapshot, prevSnapshot);
+
 		const migrationFileName = `${entry.tag}.ts`;
 		const migrationPath = join(OUTPUT_DIR, migrationFileName);
-
 		writeFileSync(migrationPath, migrationCode, "utf-8");
-		console.log(`[post-generate] ✓ Generated ${migrationPath}`);
 
 		// Add to index imports
 		const migrationName = `migrate_${entry.idx.toString().padStart(4, "0")}`;
@@ -299,7 +305,17 @@ export default {
 
 	writeFileSync(SNAPSHOTS_PATH, snapshotsContent, "utf-8");
 	console.log(`[post-generate] ✓ Generated ${SNAPSHOTS_PATH}`);
+
+	const endTime = performance.now();
+	const totalTime = endTime - startTime;
+
 	console.log(`[post-generate] Migrations: ${migrationNames.join(", ")}`);
+	console.log(
+		`[post-generate] ✓ Complete! Generated ${journal.entries.length} migrations in ${totalTime.toFixed(2)}ms`,
+	);
+	console.log(
+		`[post-generate] Average time per migration: ${(totalTime / journal.entries.length).toFixed(2)}ms`,
+	);
 } catch (error) {
 	console.error("[post-generate] Error:", error);
 	process.exit(1);

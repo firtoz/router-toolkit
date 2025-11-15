@@ -67,12 +67,11 @@ export class SqliteWorkerClient
 		switch (type) {
 			case SqliteWorkerServerMessageType.Ready:
 				{
-					performance.mark(`${this.dbName}-worker-ready`);
 					console.log(`[PERF] Worker ready for ${this.dbName}`);
 					if (this.debug) {
 						console.log("[SqliteWorkerClient] ready - sending prepare");
 					}
-					performance.mark(`${this.dbName}-prepare-request`);
+
 					// First, request preparation (diagnostics)
 					this.send({
 						type: SqliteWorkerClientMessageType.Prepare,
@@ -81,17 +80,11 @@ export class SqliteWorkerClient
 				break;
 			case SqliteWorkerServerMessageType.Prepared:
 				{
-					performance.mark(`${this.dbName}-worker-prepared`);
-					performance.measure(
-						`${this.dbName}-prepare`,
-						`${this.dbName}-prepare-request`,
-						`${this.dbName}-worker-prepared`,
-					);
 					console.log(`[PERF] Worker prepared for ${this.dbName}`);
 					if (this.debug) {
 						console.log("[SqliteWorkerClient] prepared - starting database");
 					}
-					performance.mark(`${this.dbName}-db-start-request`);
+
 					// Now start this specific database
 					this.startRequestId = StartRequestIdSchema.parse(crypto.randomUUID());
 					this.send({
@@ -106,12 +99,7 @@ export class SqliteWorkerClient
 					// Check if this is our start request
 					if (message.requestId === this.startRequestId) {
 						this.dbId = message.dbId;
-						performance.mark(`${this.dbName}-db-started`);
-						performance.measure(
-							`${this.dbName}-db-start`,
-							`${this.dbName}-db-start-request`,
-							`${this.dbName}-db-started`,
-						);
+
 						console.log(`[PERF] Database started for ${this.dbName}`);
 						if (this.debug) {
 							console.log("[SqliteWorkerClient] started with dbId:", this.dbId);

@@ -30,13 +30,16 @@ export async function migrateIndexedDB(
 ): Promise<IDBDatabase> {
 	if (debug) {
 		console.log(
-			`[${new Date().toISOString()}] [IndexedDBMigrator] starting migration for database: ${dbName}`,
+			`[${new Date().toISOString()}] [PERF] IndexedDB snapshot migrator start for ${dbName}`,
 		);
 	}
 
 	// First, open the database to check which migrations have been applied
+
 	const currentDb = await openDatabaseForMigrationCheck(dbName);
+
 	const appliedMigrations = await getAppliedMigrations(currentDb);
+
 	const latestAppliedIdx =
 		appliedMigrations.length > 0
 			? Math.max(...appliedMigrations.map((m) => m.id))
@@ -44,7 +47,7 @@ export async function migrateIndexedDB(
 
 	if (debug) {
 		console.log(
-			`[${new Date().toISOString()}] [IndexedDBMigrator] latest applied migration index: ${latestAppliedIdx}`,
+			`[${new Date().toISOString()}] [PERF] Latest applied migration index: ${latestAppliedIdx} (checked ${appliedMigrations.length} migrations)`,
 		);
 	}
 
@@ -56,17 +59,25 @@ export async function migrateIndexedDB(
 	if (pendingMigrations.length === 0) {
 		if (debug) {
 			console.log(
-				`[${new Date().toISOString()}] [IndexedDBMigrator] no pending migrations`,
+				`[${new Date().toISOString()}] [PERF] No pending migrations - database is up to date`,
 			);
 		}
 		currentDb.close();
 		// Re-open with correct version
-		return await openDatabase(dbName, config.journal.entries.length);
+
+		const db = await openDatabase(dbName, config.journal.entries.length);
+
+		if (debug) {
+			console.log(
+				`[${new Date().toISOString()}] [PERF] Migrator complete (no migrations needed)`,
+			);
+		}
+		return db;
 	}
 
 	if (debug) {
 		console.log(
-			`[${new Date().toISOString()}] [IndexedDBMigrator] pending migrations: ${pendingMigrations.length}`,
+			`[${new Date().toISOString()}] [PERF] Found ${pendingMigrations.length} pending migrations to apply:`,
 			pendingMigrations.map((m) => m.tag),
 		);
 	}
@@ -77,11 +88,14 @@ export async function migrateIndexedDB(
 	const targetVersion = config.journal.entries.length;
 
 	// Open database with version upgrade to trigger migration
+
 	const db = await new Promise<IDBDatabase>((resolve, reject) => {
 		const request = indexedDB.open(dbName, targetVersion);
 
 		request.onerror = () => reject(request.error);
-		request.onsuccess = () => resolve(request.result);
+		request.onsuccess = () => {
+			resolve(request.result);
+		};
 
 		request.onupgradeneeded = (event) => {
 			const db = (event.target as IDBOpenDBRequest).result;
@@ -94,12 +108,13 @@ export async function migrateIndexedDB(
 
 			if (debug) {
 				console.log(
-					`[${new Date().toISOString()}] [IndexedDBMigrator] upgrade needed from version ${event.oldVersion} to ${event.newVersion}`,
+					`[${new Date().toISOString()}] [PERF] Upgrade started: v${event.oldVersion} → v${event.newVersion}`,
 				);
 			}
 
 			try {
 				// Ensure migrations store exists
+
 				if (!db.objectStoreNames.contains(MIGRATIONS_STORE)) {
 					const migrationStore = db.createObjectStore(MIGRATIONS_STORE, {
 						keyPath: "id",
@@ -107,6 +122,11 @@ export async function migrateIndexedDB(
 					});
 					migrationStore.createIndex("tag", "tag", { unique: true });
 					migrationStore.createIndex("when", "when", { unique: false });
+					if (debug) {
+						console.log(
+							`[${new Date().toISOString()}] [PERF] Created migrations tracking store`,
+						);
+					}
 				}
 
 				// Apply each pending migration
@@ -128,11 +148,19 @@ export async function migrateIndexedDB(
 
 					if (debug) {
 						console.log(
-							`[${new Date().toISOString()}] [IndexedDBMigrator] applying migration ${journalEntry.idx}: ${journalEntry.tag}`,
+							`[${new Date().toISOString()}] [PERF] Applying migration ${journalEntry.idx}: ${journalEntry.tag}`,
 						);
 					}
 
-					applySnapshot(db, snapshot, previousSnapshot, transaction, debug);
+					applySnapshot(
+						db,
+						snapshot,
+						previousSnapshot,
+						transaction,
+						debug,
+						dbName,
+						journalEntry.idx,
+					);
 
 					// Record the migration
 					const migrationStore = transaction.objectStore(MIGRATIONS_STORE);
@@ -142,11 +170,17 @@ export async function migrateIndexedDB(
 						when: journalEntry.when,
 						appliedAt: Date.now(),
 					});
+
+					if (debug) {
+						console.log(
+							`[${new Date().toISOString()}] [PERF] Migration ${journalEntry.idx} complete`,
+						);
+					}
 				}
 
 				if (debug) {
 					console.log(
-						`[${new Date().toISOString()}] [IndexedDBMigrator] all migrations applied successfully`,
+						`[${new Date().toISOString()}] [PERF] All ${pendingMigrations.length} migrations applied successfully`,
 					);
 				}
 			} catch (error) {
@@ -156,6 +190,12 @@ export async function migrateIndexedDB(
 			}
 		};
 	});
+
+	if (debug) {
+		console.log(
+			`[${new Date().toISOString()}] [PERF] Migrator complete - database ready`,
+		);
+	}
 
 	return db;
 }
@@ -216,6 +256,8 @@ function applySnapshot(
 	previousSnapshot: Snapshot | null,
 	transaction: IDBTransaction,
 	debug: boolean,
+	dbName: string,
+	migrationIdx: number,
 ): void {
 	// Process each table in the snapshot
 	for (const [tableName, tableDefinition] of Object.entries(snapshot.tables)) {
@@ -224,9 +266,10 @@ function applySnapshot(
 
 		if (!storeExists) {
 			// Create new object store
+
 			if (debug) {
 				console.log(
-					`[${new Date().toISOString()}] [IndexedDBMigrator] creating object store: ${tableName}`,
+					`[${new Date().toISOString()}] [PERF] Creating object store: ${tableName}`,
 				);
 			}
 
@@ -248,7 +291,7 @@ function applySnapshot(
 				// Out-of-line key: No keyPath, can use auto-increment or external keys
 				if (debug) {
 					console.log(
-						`[${new Date().toISOString()}] [IndexedDBMigrator] creating object store ${tableName} with out-of-line keys (no keyPath)`,
+						`[${new Date().toISOString()}] [PERF] Creating object store ${tableName} with out-of-line keys (no keyPath)`,
 					);
 				}
 				objectStore = db.createObjectStore(tableName, {
@@ -299,7 +342,7 @@ function applySnapshot(
 			if (!currentIndexes[existingIndexName]) {
 				if (debug) {
 					console.log(
-						`[${new Date().toISOString()}] [IndexedDBMigrator] deleting index: ${existingIndexName} from ${tableName}`,
+						`[${new Date().toISOString()}] [PERF] Deleting index: ${existingIndexName} from ${tableName}`,
 					);
 				}
 				objectStore.deleteIndex(existingIndexName);
@@ -325,7 +368,7 @@ function applySnapshot(
 				if (keyPathChanged || uniqueChanged) {
 					if (debug) {
 						console.log(
-							`[${new Date().toISOString()}] [IndexedDBMigrator] recreating index: ${indexName} on ${tableName}`,
+							`[${new Date().toISOString()}] [PERF] Recreating index: ${indexName} on ${tableName}`,
 						);
 					}
 					// Recreate the index
@@ -336,9 +379,10 @@ function applySnapshot(
 				}
 			} else {
 				// Create new index
+
 				if (debug) {
 					console.log(
-						`[${new Date().toISOString()}] [IndexedDBMigrator] creating index: ${indexName} on ${tableName}`,
+						`[${new Date().toISOString()}] [PERF] Creating index: ${indexName} on ${tableName}`,
 					);
 				}
 
@@ -366,7 +410,7 @@ function applySnapshot(
 			) {
 				if (debug) {
 					console.log(
-						`[${new Date().toISOString()}] [IndexedDBMigrator] deleting object store: ${tableName}`,
+						`[${new Date().toISOString()}] [PERF] Deleting object store: ${tableName}`,
 					);
 				}
 				db.deleteObjectStore(tableName);
