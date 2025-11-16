@@ -3,12 +3,21 @@ import { DrizzleSqliteProvider } from "@firtoz/drizzle-sqlite-wasm";
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 import * as schema from "test-schema/schema";
 import migrations from "test-schema/drizzle/migrations";
-import { useParams } from "react-router";
+import { data, useLoaderData, useParams } from "react-router";
 import { TodoList } from "../../components/TodoList";
 import { useEffect, useState } from "react";
 
-export default function SqliteTestDynamic() {
-	const { dbName } = useParams<{ dbName: string }>();
+import type { Route } from "./+types/sqlite-test-dynamic";
+
+export const loader = async ({ request, params }: Route.LoaderArgs) => {
+	const headers = request.headers;
+	const locale = headers.get("accept-language")?.split(",")[0] || "en-US";
+	return data({ locale });
+};
+
+export default function SqliteTestDynamic({ params }: Route.ComponentProps) {
+	const { locale } = useLoaderData<typeof loader>();
+	const { dbName } = params;
 
 	if (!dbName) {
 		return <div>No database name provided</div>;
@@ -33,7 +42,7 @@ export default function SqliteTestDynamic() {
 			schema={schema}
 			migrations={migrations}
 		>
-			{mounted && <TodoList dbName={dbName} />}
+			{mounted && <TodoList dbName={dbName} locale={locale} />}
 		</DrizzleSqliteProvider>
 	);
 }

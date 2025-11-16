@@ -1,6 +1,7 @@
 import type {
 	CollectionConfig,
 	InferSchemaOutput,
+	LoadSubsetOptions,
 	SyncConfig,
 	SyncConfigRes,
 	SyncMode,
@@ -15,7 +16,7 @@ import { getTableColumns, SQL, type Table } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-valibot";
 import * as v from "valibot";
 
-import type { IdOf, SelectSchema, InsertSchema } from "./collection-utils";
+import type { IdOf, SelectSchema, InsertSchema } from "@firtoz/drizzle-utils";
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 type AnyId = IdOf<any>;
@@ -30,6 +31,8 @@ export type IndexedDBSyncItem = {
 	deletedAt: Date | null;
 	[key: string]: unknown;
 };
+
+const useDedupe = false as boolean;
 
 export interface IndexedDBCollectionConfig<TTable extends Table> {
 	/**
@@ -300,6 +303,7 @@ function tryExtractIndexedQuery(
 				keyRange = IDBKeyRange.upperBound(comparison.value, false);
 				break;
 			default:
+				console.warn(`Unsupported operator: ${comparison.operator}`);
 				return null;
 		}
 
@@ -308,7 +312,8 @@ function tryExtractIndexedQuery(
 		}
 
 		return { fieldName, indexName, keyRange };
-	} catch {
+	} catch (error) {
+		console.error("Error extracting indexed query", error, expression);
 		// If extractSimpleComparisons fails, it's a complex query
 
 		return null;
@@ -760,143 +765,150 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 			}
 		};
 
-		// Create deduplicated loadSubset wrapper to avoid redundant queries
-		const loadSubsetDedupe = new DeduplicatedLoadSubset({
-			loadSubset: async (options) => {
-				const loadId = Math.random().toString(36).substring(7);
+		const loadSubset = async (options: LoadSubsetOptions) => {
+			const loadId = Math.random().toString(36).substring(7);
 
-				await config.readyPromise;
+			await config.readyPromise;
 
-				// Ensure indexes are discovered before we try to use them
-				if (!indexesDiscovered) {
-					discoveredIndexes = discoverIndexes(
+			// Ensure indexes are discovered before we try to use them
+			if (!indexesDiscovered) {
+				discoveredIndexes = discoverIndexes(
+					// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+					config.indexedDBRef.current!,
+					config.storeName,
+				);
+				indexesDiscovered = true;
+
+				if (config.debug && Object.keys(discoveredIndexes).length > 0) {
+					console.log(
+						`[IndexedDB Collection] Auto-discovered ${Object.keys(discoveredIndexes).length} indexes for ${config.storeName}:`,
+						discoveredIndexes,
+					);
+				}
+			}
+
+			begin();
+
+			try {
+				let items: IndexedDBSyncItem[];
+
+				console.log("Expression", options.where);
+
+				// Try to use an index for efficient querying
+				const indexedQuery = options.where
+					? tryExtractIndexedQuery(options.where, discoveredIndexes)
+					: null;
+
+				if (indexedQuery) {
+					// Use indexed query for better performance
+					if (config.debug) {
+						console.log(
+							`[${new Date().toISOString()}] Using indexed query on ${indexedQuery.indexName}`,
+						);
+					}
+
+					items = await getAllFromIndex(
+						// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
+						config.indexedDBRef.current!,
+						config.storeName,
+						indexedQuery.indexName,
+						indexedQuery.keyRange,
+					);
+				} else {
+					// Fall back to getting all items
+
+					items = await getAllFromStore(
 						// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
 						config.indexedDBRef.current!,
 						config.storeName,
 					);
-					indexesDiscovered = true;
 
-					if (config.debug && Object.keys(discoveredIndexes).length > 0) {
-						console.log(
-							`[IndexedDB Collection] Auto-discovered ${Object.keys(discoveredIndexes).length} indexes for ${config.storeName}:`,
-							discoveredIndexes,
+					// Apply where filter in memory
+					if (options.where) {
+						const whereExpression = options.where;
+						const originalCount = items.length;
+						items = items.filter((item) =>
+							evaluateExpression(
+								whereExpression,
+								item as Record<string, unknown>,
+							),
 						);
-					}
-				}
 
-				begin();
-
-				try {
-					let items: IndexedDBSyncItem[];
-
-					// Try to use an index for efficient querying
-					const indexedQuery = options.where
-						? tryExtractIndexedQuery(options.where, discoveredIndexes)
-						: null;
-
-					if (indexedQuery) {
-						// Use indexed query for better performance
 						if (config.debug) {
 							console.log(
-								`[${new Date().toISOString()}] Using indexed query on ${indexedQuery.indexName}`,
+								`[IndexedDB Collection] Filtered ${originalCount} → ${items.length} items`,
 							);
 						}
-
-						items = await getAllFromIndex(
-							// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
-							config.indexedDBRef.current!,
-							config.storeName,
-							indexedQuery.indexName,
-							indexedQuery.keyRange,
-						);
-					} else {
-						// Fall back to getting all items
-
-						items = await getAllFromStore(
-							// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
-							config.indexedDBRef.current!,
-							config.storeName,
-						);
-
-						// Apply where filter in memory
-						if (options.where) {
-							const whereExpression = options.where;
-							const originalCount = items.length;
-							items = items.filter((item) =>
-								evaluateExpression(
-									whereExpression,
-									item as Record<string, unknown>,
-								),
-							);
-
-							if (config.debug) {
-								console.log(
-									`[IndexedDB Collection] Filtered ${originalCount} → ${items.length} items`,
-								);
-							}
-						}
 					}
-
-					// Apply orderBy
-					if (options.orderBy) {
-						const sorts = parseOrderByExpression(options.orderBy);
-						items.sort((a, b) => {
-							for (const sort of sorts) {
-								// Access nested field (though typically will be single level)
-								// biome-ignore lint/suspicious/noExplicitAny: Need any for dynamic field access
-								let aValue: any = a;
-								// biome-ignore lint/suspicious/noExplicitAny: Need any for dynamic field access
-								let bValue: any = b;
-								for (const fieldName of sort.field) {
-									aValue = aValue?.[fieldName];
-									bValue = bValue?.[fieldName];
-								}
-
-								if (aValue < bValue) {
-									return sort.direction === "asc" ? -1 : 1;
-								}
-								if (aValue > bValue) {
-									return sort.direction === "asc" ? 1 : -1;
-								}
-							}
-							return 0;
-						});
-					}
-
-					// Apply limit
-					if (options.limit !== undefined) {
-						items = items.slice(0, options.limit);
-					}
-
-					for (const item of items) {
-						write({
-							type: "insert",
-							value: item as unknown as InferSchemaOutput<SelectSchema<TTable>>,
-						});
-					}
-
-					commit();
-
-					if (config.debug) {
-						console.log(
-							`[IndexedDB Collection] Load subset ${loadId} complete: ${items.length} items`,
-						);
-					}
-				} catch (error) {
-					commit();
-					throw error;
 				}
-			},
-		});
+
+				// Apply orderBy
+				if (options.orderBy) {
+					const sorts = parseOrderByExpression(options.orderBy);
+					items.sort((a, b) => {
+						for (const sort of sorts) {
+							// Access nested field (though typically will be single level)
+							// biome-ignore lint/suspicious/noExplicitAny: Need any for dynamic field access
+							let aValue: any = a;
+							// biome-ignore lint/suspicious/noExplicitAny: Need any for dynamic field access
+							let bValue: any = b;
+							for (const fieldName of sort.field) {
+								aValue = aValue?.[fieldName];
+								bValue = bValue?.[fieldName];
+							}
+
+							if (aValue < bValue) {
+								return sort.direction === "asc" ? -1 : 1;
+							}
+							if (aValue > bValue) {
+								return sort.direction === "asc" ? 1 : -1;
+							}
+						}
+						return 0;
+					});
+				}
+
+				// Apply limit
+				if (options.limit !== undefined) {
+					items = items.slice(0, options.limit);
+				}
+
+				for (const item of items) {
+					write({
+						type: "insert",
+						value: item as unknown as InferSchemaOutput<SelectSchema<TTable>>,
+					});
+				}
+
+				commit();
+
+				if (config.debug) {
+					console.log(
+						`[IndexedDB Collection] Load subset ${loadId} complete: ${items.length} items`,
+					);
+				}
+			} catch (error) {
+				commit();
+				throw error;
+			}
+		};
+
+		// Create deduplicated loadSubset wrapper to avoid redundant queries
+		let loadSubsetDedupe: DeduplicatedLoadSubset | null = null;
+		if (useDedupe) {
+			loadSubsetDedupe = new DeduplicatedLoadSubset({
+				loadSubset,
+			});
+		}
 
 		return {
 			cleanup: () => {
 				insertListener = null;
 				updateListener = null;
 				deleteListener = null;
-				loadSubsetDedupe.reset();
+				loadSubsetDedupe?.reset();
 			},
-			loadSubset: loadSubsetDedupe.loadSubset,
+			loadSubset: loadSubsetDedupe?.loadSubset ?? loadSubset,
 		} satisfies SyncConfigRes;
 	};
 
@@ -951,6 +963,8 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 				if (column.notNull) {
 					throw new Error(`Column ${columnName} is not nullable`);
 				}
+
+				result[columnName] = null;
 			}
 
 			return result;

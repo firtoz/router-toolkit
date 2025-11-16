@@ -53,5 +53,13 @@
 	},
 	"publishConfig": {
 		"access": "public"
+	},
+	"peerDependencies": {
+		"drizzle-orm": "catalog:",
+		"drizzle-valibot": "^0.4.2"
+	},
+	"devDependencies": {
+		"drizzle-orm": "catalog:",
+		"drizzle-valibot": "^0.4.2"
 	}
 }

@@ -15,3 +15,24 @@ export type {
 	SnapshotInternal,
 	Snapshot,
 } from "./types";
+
+export type {
+	Branded,
+	IdType,
+	TableId,
+	IdOf,
+	SelectSchema,
+	InsertSchema,
+} from "./collection-utils";
+
+export { makeId } from "./collection-utils";
+
+export {
+	idColumn,
+	createdAtColumn,
+	updatedAtColumn,
+	deletedAtColumn,
+	syncableTable,
+} from "./syncableTable";
+
+export type { TableWithRequiredFields } from "./syncableTable";

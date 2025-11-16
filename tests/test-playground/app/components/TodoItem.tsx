@@ -5,12 +5,14 @@ export interface TodoItemProps {
 	todo: Todo;
 	onToggleComplete: (id: Todo["id"]) => void;
 	onDelete: (id: Todo["id"]) => void;
+	locale: Intl.LocalesArgument;
 }
 
 export const TodoItem = ({
 	todo,
 	onToggleComplete,
 	onDelete,
+	locale,
 }: TodoItemProps) => {
 	return (
 		<div
@@ -54,11 +56,11 @@ export const TodoItem = ({
 							<div className="flex items-center gap-4 flex-wrap">
 								<span>
 									<span className="font-medium">Created:</span>{" "}
-									{formatDateWithMs(todo.createdAt)}
+									{formatDateWithMs(todo.createdAt, locale)}
 								</span>
 								<span>
 									<span className="font-medium">Updated:</span>{" "}
-									{formatDateWithMs(todo.updatedAt)}
+									{formatDateWithMs(todo.updatedAt, locale)}
 								</span>
 							</div>
 						</div>

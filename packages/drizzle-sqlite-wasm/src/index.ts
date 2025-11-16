@@ -1,10 +1,8 @@
 export { drizzleSqliteWasm } from "./drizzle/direct";
 export { SqliteWorkerClient } from "./worker/client";
-export {
-	drizzleCollectionOptions,
-	syncableTable,
-} from "./collections/drizzle-collection";
-export { makeId } from "./collections/collection-utils";
+export { drizzleCollectionOptions } from "./collections/drizzle-collection";
+export { syncableTable } from "@firtoz/drizzle-utils";
+export { makeId } from "@firtoz/drizzle-utils";
 export type {
 	IdOf,
 	TableId,
@@ -12,12 +10,12 @@ export type {
 	IdType,
 	SelectSchema,
 	InsertSchema,
-} from "./collections/collection-utils";
-export { indexedDBCollectionOptions } from "./collections/indexeddb-collection";
-export type {
-	IndexedDBCollectionConfig,
-	IndexedDBSyncItem,
-} from "./collections/indexeddb-collection";
+} from "@firtoz/drizzle-utils";
+export {
+	indexedDBCollectionOptions,
+	type IndexedDBCollectionConfig,
+	type IndexedDBSyncItem,
+} from "@firtoz/drizzle-indexeddb";
 export { useDrizzle } from "./hooks/useDrizzle";
 // SQLite WASM Provider
 export {
@@ -28,18 +26,7 @@ export {
 export type { DrizzleSqliteContextValue } from "./context/DrizzleSqliteProvider";
 export { useDrizzleSqlite as useDrizzleContext } from "./context/useDrizzleSqlite";
 export type { UseDrizzleContextReturn } from "./context/useDrizzleSqlite";
-// IndexedDB Provider
-export {
-	DrizzleIndexedDBProvider,
-	DrizzleIndexedDBContext,
-	useIndexedDBCollection,
-} from "./context/DrizzleIndexedDBProvider";
-export type {
-	DrizzleIndexedDBContextValue,
-	IndexedDBMigrationFunction,
-} from "./context/DrizzleIndexedDBProvider";
-export { useDrizzleIndexedDB as useDrizzleIndexedDBContext } from "./context/useDrizzleIndexedDB";
-export type { UseDrizzleIndexedDBContextReturn } from "./context/useDrizzleIndexedDB";
+
 export {
 	getPerformanceMetrics,
 	getPerformanceMarks,

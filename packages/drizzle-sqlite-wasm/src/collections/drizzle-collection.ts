@@ -12,7 +12,6 @@ import { DeduplicatedLoadSubset } from "@tanstack/db";
 import {
 	eq,
 	sql,
-	type BuildColumns,
 	type Table,
 	gt,
 	gte,
@@ -28,130 +27,18 @@ import {
 	inArray,
 	asc,
 	desc,
-	SQL,
-	getTableColumns,
+	type SQL,
 } from "drizzle-orm";
-import {
-	integer,
-	type SQLiteColumnBuilderBase,
-	sqliteTable,
-	text,
-	type SQLiteTableWithColumns,
-	type TableConfig,
-	type SQLiteUpdateSetSource,
-	type BaseSQLiteDatabase,
-	type SQLiteTableExtraConfigValue,
-	type SQLiteInsertValue,
+import type {
+	SQLiteUpdateSetSource,
+	BaseSQLiteDatabase,
+	SQLiteInsertValue,
 } from "drizzle-orm/sqlite-core";
 import { createSelectSchema } from "drizzle-valibot";
 import type {
-	Branded,
-	IdType,
-	TableId,
-	IdOf,
 	SelectSchema,
-	InsertSchema,
-} from "./collection-utils";
-import { makeId } from "./collection-utils";
-
-export type { Branded, IdType, TableId, IdOf, SelectSchema, InsertSchema };
-export { makeId };
-
-export const idColumn = text("id").primaryKey().$type<IdType>();
-
-const createTableIdColumn = <TTableName extends string>() =>
-	text("id")
-		.primaryKey()
-		.$type<TableId<TTableName>>()
-		.$defaultFn(() => {
-			return crypto.randomUUID() as TableId<TTableName>;
-		});
-// Use unixepoch with 'subsec' modifier for millisecond precision timestamps
-export const createdAtColumn = integer("createdAt", { mode: "timestamp" })
-	.$defaultFn(() => new Date())
-	.notNull();
-export const updatedAtColumn = integer("updatedAt", { mode: "timestamp" })
-	.$defaultFn(() => new Date())
-	.notNull();
-export const deletedAtColumn = integer("deletedAt", {
-	mode: "timestamp",
-});
-
-export const syncableTable = <
-	TTableName extends string,
-	TColumns extends Record<string, SQLiteColumnBuilderBase> & {
-		id?: never;
-		createdAt?: never;
-		updatedAt?: never;
-		deletedAt?: never;
-	},
->(
-	tableName: TTableName,
-	columns: TColumns,
-	extraConfig?: (
-		self: BuildColumns<
-			TTableName,
-			Omit<TColumns, "id" | "createdAt" | "updatedAt" | "deletedAt"> & {
-				id: ReturnType<typeof createTableIdColumn<TTableName>>;
-				createdAt: typeof createdAtColumn;
-				updatedAt: typeof updatedAtColumn;
-				deletedAt: typeof deletedAtColumn;
-			},
-			"sqlite"
-		>,
-	) => SQLiteTableExtraConfigValue[],
-) => {
-	const tableIdColumn = createTableIdColumn<TTableName>();
-	const table = sqliteTable(
-		tableName,
-		{
-			id: tableIdColumn,
-			createdAt: createdAtColumn,
-			updatedAt: updatedAtColumn,
-			deletedAt: deletedAtColumn,
-			...columns,
-		},
-		extraConfig,
-	);
-
-	const tableColumns = getTableColumns(table);
-
-	// console.log("table:", table);
-
-	for (const columnName in tableColumns) {
-		const column = tableColumns[columnName];
-
-		let defaultValue: unknown | undefined;
-		if (column.defaultFn) {
-			defaultValue = column.defaultFn();
-		} else if (column.default !== undefined) {
-			defaultValue = column.default;
-		}
-
-		if (defaultValue instanceof SQL) {
-			throw new Error(
-				`Default value for column ${tableName}.${columnName} is a SQL expression, which is not supported for IndexedDB`,
-			);
-		}
-	}
-
-	return table;
-};
-
-type TableWithRequiredFields = SQLiteTableWithColumns<
-	Pick<TableConfig, "name" | "schema" | "dialect"> & {
-		columns: BuildColumns<
-			string,
-			{
-				id: ReturnType<typeof createTableIdColumn<string>>;
-				createdAt: typeof createdAtColumn;
-				updatedAt: typeof updatedAtColumn;
-				deletedAt: typeof deletedAtColumn;
-			},
-			"sqlite"
-		>;
-	}
->;
+	TableWithRequiredFields,
+} from "@firtoz/drizzle-utils";
 
 export type AnyDrizzleDatabase = BaseSQLiteDatabase<
 	"async",

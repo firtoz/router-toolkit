@@ -12,7 +12,8 @@ export const useDynamicFetcher = <TInfo extends RouteWithLoaderModule>(
 	load: (queryParams?: Record<string, string>) => Promise<void>;
 } => {
 	const url = useMemo(() => {
-		return href(path, ...args);
+		// biome-ignore lint/suspicious/noExplicitAny: Intentional
+		return href(path, ...(args as any));
 	}, [path, args]);
 
 	const fetcher = useFetcher<TInfo["loader"]>({

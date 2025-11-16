@@ -38,6 +38,7 @@
 	},
 	"dependencies": {
 		"drizzle-orm": "catalog:",
-		"@firtoz/drizzle-sqlite-wasm": "workspace:*"
+		"@firtoz/drizzle-sqlite-wasm": "workspace:*",
+		"@firtoz/drizzle-utils": "workspace:*"
 	}
 }

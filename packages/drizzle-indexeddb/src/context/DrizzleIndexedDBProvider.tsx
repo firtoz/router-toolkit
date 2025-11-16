@@ -18,12 +18,8 @@ import { getTableName, type Table } from "drizzle-orm";
 import {
 	indexedDBCollectionOptions,
 	type IndexedDBCollectionConfig,
-} from "../collections/indexeddb-collection";
-import type {
-	IdOf,
-	InsertSchema,
-	SelectSchema,
-} from "../collections/collection-utils";
+} from "@firtoz/drizzle-indexeddb";
+import type { IdOf, InsertSchema, SelectSchema } from "@firtoz/drizzle-utils";
 
 // Helper type to get the table from schema by name
 type GetTableFromSchema<
@@ -39,7 +35,8 @@ type InferCollectionFromTable<TTable extends Table> = Collection<
 	SelectSchema<TTable>,
 	Omit<
 		TTable["$inferInsert"],
-		"createdAt" | "updatedAt" | "deletedAt" | "id"
+		"id"
+		// "createdAt" | "updatedAt" | "deletedAt" | "id"
 	> & {
 		id?: IdOf<TTable>;
 	}
@@ -189,6 +186,7 @@ export function DrizzleIndexedDBProvider<
 						storeName: actualTableName,
 						readyPromise: readyPromise.promise,
 						debug,
+						syncMode: "on-demand",
 					} as IndexedDBCollectionConfig<Table>),
 				);
 

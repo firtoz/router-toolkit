@@ -9,7 +9,13 @@ import { useState, useEffect, useRef } from "react";
 import * as schema from "test-schema/schema";
 import { TodoItem } from "~/components/TodoItem";
 
-export const TodoList = ({ dbName }: { dbName: string }) => {
+export const TodoList = ({
+	dbName,
+	locale,
+}: {
+	dbName: string;
+	locale: Intl.LocalesArgument;
+}) => {
 	const renderStartRef = useRef(false);
 	const observerRef = useRef<PerformanceObserver | null>(null);
 
@@ -156,6 +162,7 @@ export const TodoList = ({ dbName }: { dbName: string }) => {
 						todo={todo}
 						onToggleComplete={handleToggleComplete}
 						onDelete={handleDeleteTodo}
+						locale={locale}
 					/>
 				))}
 			</div>

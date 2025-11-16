@@ -12,10 +12,10 @@ import {
 	type ValidTableNames,
 	type DrizzleSchema,
 	drizzleCollectionOptions,
-	type IdOf,
 } from "../collections/drizzle-collection";
 import { useDrizzle } from "../hooks/useDrizzle";
 import type { DurableSqliteMigrationConfig } from "../migration/migrator";
+import type { IdOf } from "@firtoz/drizzle-utils";
 
 // Helper type to get the table from schema by name
 type GetTableFromSchema<

@@ -256,8 +256,8 @@ function applySnapshot(
 	previousSnapshot: Snapshot | null,
 	transaction: IDBTransaction,
 	debug: boolean,
-	dbName: string,
-	migrationIdx: number,
+	_dbName: string,
+	_migrationIdx: number,
 ): void {
 	// Process each table in the snapshot
 	for (const [tableName, tableDefinition] of Object.entries(snapshot.tables)) {

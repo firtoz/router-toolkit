@@ -26,12 +26,24 @@
       "version": "0.0.0",
       "dependencies": {
         "@firtoz/drizzle-utils": "workspace:*",
+        "@tanstack/db": "catalog:",
+        "drizzle-orm": "catalog:",
+        "drizzle-valibot": "^0.4.2",
+        "valibot": "^1.0.0",
+      },
+      "devDependencies": {
+        "@types/react": "catalog:",
+      },
+      "peerDependencies": {
+        "react": "catalog:",
       },
     },
     "packages/drizzle-sqlite-wasm": {
       "name": "@firtoz/drizzle-sqlite-wasm",
       "version": "0.0.0",
       "dependencies": {
+        "@firtoz/drizzle-indexeddb": "workspace:*",
+        "@firtoz/drizzle-utils": "workspace:*",
         "@firtoz/maybe-error": "workspace:*",
         "@firtoz/worker-helper": "workspace:*",
         "@sqlite.org/sqlite-wasm": "catalog:",
@@ -49,6 +61,14 @@
     "packages/drizzle-utils": {
       "name": "@firtoz/drizzle-utils",
       "version": "0.0.0",
+      "devDependencies": {
+        "drizzle-orm": "catalog:",
+        "drizzle-valibot": "^0.4.2",
+      },
+      "peerDependencies": {
+        "drizzle-orm": "catalog:",
+        "drizzle-valibot": "^0.4.2",
+      },
     },
     "packages/hono-fetcher": {
       "name": "@firtoz/hono-fetcher",
@@ -164,6 +184,7 @@
       "name": "test-schema",
       "dependencies": {
         "@firtoz/drizzle-sqlite-wasm": "workspace:*",
+        "@firtoz/drizzle-utils": "workspace:*",
         "drizzle-orm": "catalog:",
       },
       "devDependencies": {

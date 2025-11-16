@@ -1,8 +1,4 @@
-import {
-	type IdOf,
-	type TableId,
-	syncableTable,
-} from "@firtoz/drizzle-sqlite-wasm/schema";
+import { type IdOf, type TableId, syncableTable } from "@firtoz/drizzle-utils";
 import { relations } from "drizzle-orm";
 import { index, integer, text } from "drizzle-orm/sqlite-core";
 

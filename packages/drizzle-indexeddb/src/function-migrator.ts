@@ -212,8 +212,6 @@ async function openDatabase(
 async function getAppliedMigrations(
 	db: IDBDatabase,
 ): Promise<MigrationRecord[]> {
-	const dbName = db.name;
-
 	if (!db.objectStoreNames.contains(MIGRATIONS_STORE)) {
 		return [];
 	}

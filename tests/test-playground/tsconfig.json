@@ -1,10 +1,10 @@
 {
 	"include": [
-		"**/*.ts",
-		"**/*.tsx",
-		"**/.server/**/*",
-		"**/.client/**/*",
-		".react-router/types/**/*"
+		"./**/*.ts",
+		"./**/*.tsx",
+		"./**/.server/**/*",
+		"./**/.client/**/*",
+		"./.react-router/types/**/*"
 	],
 	"exclude": ["app/workers/**/*.worker.ts"],
 	// "references": [
