@@ -45,54 +45,34 @@ export default function LoaderTest() {
 	};
 
 	return (
-		<div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
-			<Link
-				to="/"
-				className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-6 transition-colors"
-			>
-				← Back to Home
-			</Link>
-			<h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-				Loader Test
-			</h1>
-			<p className="mb-4 text-gray-600 dark:text-gray-400">
-				Testing React Router useFetcher hook
-			</p>
+		<div>
+			<Link to="/">← Back to Home</Link>
+			<h1>Loader Test</h1>
+			<p>Testing React Router useFetcher hook</p>
 
 			<button
 				type="button"
 				onClick={handleRefresh}
 				disabled={fetcher.state === "loading"}
-				className="bg-blue-500 dark:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50 hover:bg-blue-600 dark:hover:bg-blue-700 active:bg-blue-700 dark:active:bg-blue-800 transition-all hover:shadow-md"
 			>
 				{fetcher.state === "loading" ? "Loading..." : "Refresh Data"}
 			</button>
 
-			<div className="mt-6">
-				<h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
-					Fetcher State:
-				</h2>
-				<pre className="bg-gray-200 dark:bg-gray-800 p-3 rounded text-sm text-gray-800 dark:text-gray-200">
-					{JSON.stringify({ state: fetcher.state }, null, 2)}
-				</pre>
+			<div>
+				<h2>Fetcher State:</h2>
+				<pre>{JSON.stringify({ state: fetcher.state }, null, 2)}</pre>
 			</div>
 
 			{fetcher.data && (
-				<div className="mt-6">
-					<h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
-						Fetched Data:
-					</h2>
-					<pre className="bg-gray-200 dark:bg-gray-800 p-3 rounded text-sm text-gray-800 dark:text-gray-200">
-						{JSON.stringify(fetcher.data, null, 2)}
-					</pre>
+				<div>
+					<h2>Fetched Data:</h2>
+					<pre>{JSON.stringify(fetcher.data, null, 2)}</pre>
 				</div>
 			)}
 
 			{fetcher.state === "idle" && fetcher.data && (
-				<div className="mt-4 p-3 bg-green-100 dark:bg-green-900/30 rounded border border-green-200 dark:border-green-800">
-					<p className="text-green-800 dark:text-green-300">
-						✅ Data loaded successfully!
-					</p>
+				<div>
+					<p>✅ Data loaded successfully!</p>
 				</div>
 			)}
 		</div>

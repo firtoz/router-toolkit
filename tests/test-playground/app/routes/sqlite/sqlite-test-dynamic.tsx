@@ -3,13 +3,13 @@ import { DrizzleSqliteProvider } from "@firtoz/drizzle-sqlite-wasm";
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 import * as schema from "test-schema/schema";
 import migrations from "test-schema/drizzle/migrations";
-import { data, useLoaderData, useParams } from "react-router";
+import { data, useLoaderData } from "react-router";
 import { TodoList } from "../../components/TodoList";
 import { useEffect, useState } from "react";
 
 import type { Route } from "./+types/sqlite-test-dynamic";
 
-export const loader = async ({ request, params }: Route.LoaderArgs) => {
+export const loader = async ({ request }: Route.LoaderArgs) => {
 	const headers = request.headers;
 	const locale = headers.get("accept-language")?.split(",")[0] || "en-US";
 	return data({ locale });

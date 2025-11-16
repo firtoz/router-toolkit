@@ -260,6 +260,7 @@ function getAllFromIndex(
 function tryExtractIndexedQuery(
 	expression: IR.BasicExpression,
 	indexes?: Record<string, string>,
+	debug?: boolean,
 ): { fieldName: string; indexName: string; keyRange: IDBKeyRange } | null {
 	if (!indexes) {
 		return null;
@@ -303,7 +304,11 @@ function tryExtractIndexedQuery(
 				keyRange = IDBKeyRange.upperBound(comparison.value, false);
 				break;
 			default:
-				console.warn(`Unsupported operator: ${comparison.operator}`);
+				if (debug) {
+					console.warn(
+						`Skipping indexed query extraction for unsupported operator: ${comparison.operator}`,
+					);
+				}
 				return null;
 		}
 
@@ -531,13 +536,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 				);
 
 				indexesDiscovered = true;
-
-				if (config.debug && Object.keys(discoveredIndexes).length > 0) {
-					console.log(
-						`[IndexedDB Collection] Auto-discovered ${Object.keys(discoveredIndexes).length} indexes for ${config.storeName}:`,
-						discoveredIndexes,
-					);
-				}
 			}
 		};
 
@@ -552,12 +550,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 					config.indexedDBRef.current!,
 					config.storeName,
 				);
-
-				if (config.debug) {
-					console.log(
-						`[IndexedDB Collection] Initial sync: loading ${items.length} items from ${config.storeName}`,
-					);
-				}
 
 				for (const item of items) {
 					write({
@@ -598,13 +590,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 					// const itemToInsert = v.parse(insertSchemaWithDefaults, item.modified);
 					const itemToInsert = item.modified;
 
-					if (config.debug) {
-						console.log(
-							`[${new Date().toISOString()}] insertListener write`,
-							itemToInsert,
-						);
-					}
-
 					// Write to reactive store immediately (optimistic)
 					write({
 						type: "insert",
@@ -641,12 +626,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 		updateListener = async (params) => {
 			begin();
 			for (const item of params.transaction.mutations) {
-				if (config.debug) {
-					console.log(
-						`[${new Date().toISOString()}] updateListener write`,
-						item,
-					);
-				}
 				write({
 					type: "update",
 					value: item.modified,
@@ -722,12 +701,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 		deleteListener = async (params) => {
 			begin();
 			for (const item of params.transaction.mutations) {
-				if (config.debug) {
-					console.log(
-						`[${new Date().toISOString()}] deleteListener write`,
-						item,
-					);
-				}
 				write({
 					type: "delete",
 					value: item.modified,
@@ -778,13 +751,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 					config.storeName,
 				);
 				indexesDiscovered = true;
-
-				if (config.debug && Object.keys(discoveredIndexes).length > 0) {
-					console.log(
-						`[IndexedDB Collection] Auto-discovered ${Object.keys(discoveredIndexes).length} indexes for ${config.storeName}:`,
-						discoveredIndexes,
-					);
-				}
 			}
 
 			begin();
@@ -792,20 +758,17 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 			try {
 				let items: IndexedDBSyncItem[];
 
-				console.log("Expression", options.where);
-
 				// Try to use an index for efficient querying
 				const indexedQuery = options.where
-					? tryExtractIndexedQuery(options.where, discoveredIndexes)
+					? tryExtractIndexedQuery(
+							options.where,
+							discoveredIndexes,
+							config.debug,
+						)
 					: null;
 
 				if (indexedQuery) {
 					// Use indexed query for better performance
-					if (config.debug) {
-						console.log(
-							`[${new Date().toISOString()}] Using indexed query on ${indexedQuery.indexName}`,
-						);
-					}
 
 					items = await getAllFromIndex(
 						// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
@@ -826,19 +789,12 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 					// Apply where filter in memory
 					if (options.where) {
 						const whereExpression = options.where;
-						const originalCount = items.length;
 						items = items.filter((item) =>
 							evaluateExpression(
 								whereExpression,
 								item as Record<string, unknown>,
 							),
 						);
-
-						if (config.debug) {
-							console.log(
-								`[IndexedDB Collection] Filtered ${originalCount} → ${items.length} items`,
-							);
-						}
 					}
 				}
 
@@ -881,12 +837,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 				}
 
 				commit();
-
-				if (config.debug) {
-					console.log(
-						`[IndexedDB Collection] Load subset ${loadId} complete: ${items.length} items`,
-					);
-				}
 			} catch (error) {
 				commit();
 				throw error;
@@ -983,28 +933,16 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 		onInsert: async (
 			params: Parameters<NonNullable<CollectionType["onInsert"]>>[0],
 		) => {
-			if (config.debug) {
-				console.log("onInsert", params);
-			}
-
 			await insertListener?.(params);
 		},
 		onUpdate: async (
 			params: Parameters<NonNullable<CollectionType["onUpdate"]>>[0],
 		) => {
-			if (config.debug) {
-				console.log("onUpdate", params);
-			}
-
 			await updateListener?.(params);
 		},
 		onDelete: async (
 			params: Parameters<NonNullable<CollectionType["onDelete"]>>[0],
 		) => {
-			if (config.debug) {
-				console.log("onDelete", params);
-			}
-
 			await deleteListener?.(params);
 		},
 		syncMode: config.syncMode,

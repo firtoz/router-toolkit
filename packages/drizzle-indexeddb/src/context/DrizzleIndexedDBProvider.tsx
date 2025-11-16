@@ -13,6 +13,7 @@ import {
 	type UtilsRecord,
 	type Collection,
 	type InferSchemaOutput,
+	type SyncMode,
 } from "@tanstack/db";
 import { getTableName, type Table } from "drizzle-orm";
 import {
@@ -20,6 +21,7 @@ import {
 	type IndexedDBCollectionConfig,
 } from "@firtoz/drizzle-indexeddb";
 import type { IdOf, InsertSchema, SelectSchema } from "@firtoz/drizzle-utils";
+import { migrateIndexedDBWithFunctions } from "../function-migrator";
 
 // Helper type to get the table from schema by name
 type GetTableFromSchema<
@@ -84,13 +86,14 @@ type DrizzleIndexedDBProviderProps<TSchema extends Record<string, unknown>> =
 	PropsWithChildren<{
 		dbName: string;
 		schema: TSchema;
-		migrations: IndexedDBMigrationFunction[];
-		migrateFunction: (
+		migrations?: IndexedDBMigrationFunction[];
+		migrateFunction?: (
 			dbName: string,
 			migrations: IndexedDBMigrationFunction[],
 			debug?: boolean,
 		) => Promise<IDBDatabase>;
 		debug?: boolean;
+		syncMode?: SyncMode;
 	}>;
 
 export function DrizzleIndexedDBProvider<
@@ -99,9 +102,10 @@ export function DrizzleIndexedDBProvider<
 	children,
 	dbName,
 	schema,
-	migrations,
-	migrateFunction,
+	migrations = [],
+	migrateFunction = migrateIndexedDBWithFunctions,
 	debug = false,
+	syncMode = "eager",
 }: DrizzleIndexedDBProviderProps<TSchema>) {
 	const [indexedDB, setIndexedDB] = useState<IDBDatabase | null>(null);
 	const indexedDBRef = useRef<IDBDatabase | null>(null);
@@ -115,21 +119,24 @@ export function DrizzleIndexedDBProvider<
 	});
 
 	useEffect(() => {
-		console.log(`[PERF] DrizzleIndexedDBProvider init start for ${dbName}`);
-
 		const initDB = async () => {
 			try {
-				console.log(`[PERF] IndexedDB migration start for ${dbName}`);
+				let db: IDBDatabase;
 
-				const db = await migrateFunction(dbName, migrations, debug);
-
-				console.log(`[PERF] IndexedDB migration complete for ${dbName}`);
+				if (migrations.length === 0) {
+					// Open database directly without migration logic
+					db = await new Promise<IDBDatabase>((resolve, reject) => {
+						const request = globalThis.indexedDB.open(dbName);
+						request.onerror = () => reject(request.error);
+						request.onsuccess = () => resolve(request.result);
+					});
+				} else {
+					db = await migrateFunction(dbName, migrations, debug);
+				}
 
 				indexedDBRef.current = db;
 				setIndexedDB(db);
 				readyPromise.resolve();
-
-				console.log(`[PERF] DrizzleIndexedDBProvider ready for ${dbName}`);
 			} catch (error) {
 				console.error(
 					`[DrizzleIndexedDBProvider] Failed to initialize database ${dbName}:`,
@@ -186,7 +193,7 @@ export function DrizzleIndexedDBProvider<
 						storeName: actualTableName,
 						readyPromise: readyPromise.promise,
 						debug,
-						syncMode: "on-demand",
+						syncMode,
 					} as IndexedDBCollectionConfig<Table>),
 				);
 
@@ -200,7 +207,15 @@ export function DrizzleIndexedDBProvider<
 			return collections.get(cacheKey)!
 				.collection as unknown as IndexedDbCollection<TSchema, TTableName>;
 		},
-		[indexedDBRef, collections, schema, readyPromise.promise, debug, dbName],
+		[
+			indexedDBRef,
+			collections,
+			schema,
+			readyPromise.promise,
+			debug,
+			dbName,
+			syncMode,
+		],
 	);
 
 	const incrementRefCount: DrizzleIndexedDBContextValue<TSchema>["incrementRefCount"] =
@@ -209,9 +224,6 @@ export function DrizzleIndexedDBProvider<
 				const entry = collections.get(tableName);
 				if (entry) {
 					entry.refCount++;
-					console.log(
-						`[Collection Cache] ${tableName} ref count: ${entry.refCount}`,
-					);
 				}
 			},
 			[collections],
@@ -223,13 +235,9 @@ export function DrizzleIndexedDBProvider<
 				const entry = collections.get(tableName);
 				if (entry) {
 					entry.refCount--;
-					console.log(
-						`[Collection Cache] ${tableName} ref count: ${entry.refCount}`,
-					);
 
 					// If ref count reaches 0, remove from cache
 					if (entry.refCount <= 0) {
-						console.log(`[Collection Cache] Removing ${tableName} from cache`);
 						collections.delete(tableName);
 					}
 				}
