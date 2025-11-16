@@ -15,38 +15,49 @@ export const TodoItem = ({
 	locale,
 }: TodoItemProps) => {
 	return (
-		<div>
+		<div data-testid={`todo-card-${todo.id}`}>
 			<div>
 				<div>
 					<div>
 						<div>
-							<h3>{todo.title}</h3>
-							<span>{todo.completed ? "✅ Completed" : "⏳ Pending"}</span>
+							<h3 data-testid={`todo-title-${todo.id}`}>{todo.title}</h3>
+							<span data-testid={`todo-status-${todo.id}`}>
+								{todo.completed ? "✅ Completed" : "⏳ Pending"}
+							</span>
 						</div>
 
 						<div>
 							<div>
 								<span>ID:</span>
-								<code>{todo.id}</code>
+								<code data-testid={`todo-id-${todo.id}`}>{todo.id}</code>
 							</div>
 							<div>
 								<span>
 									<span>Created:</span>{" "}
-									{formatDateWithMs(todo.createdAt, locale)}
+									<span data-testid={`todo-created-${todo.id}`}>
+										{formatDateWithMs(todo.createdAt, locale)}
+									</span>
 								</span>
 								<span>
 									<span>Updated:</span>{" "}
-									{formatDateWithMs(todo.updatedAt, locale)}
+									<span data-testid={`todo-updated-${todo.id}`}>
+										{formatDateWithMs(todo.updatedAt, locale)}
+									</span>
 								</span>
 							</div>
 						</div>
 					</div>
 
 					<div>
-						<button onClick={() => onToggleComplete(todo.id)} type="button">
+						<button
+							data-testid={`todo-toggle-${todo.id}`}
+							onClick={() => onToggleComplete(todo.id)}
+							type="button"
+						>
 							{todo.completed ? "↩️ Undo" : "✅ Complete"}
 						</button>
 						<button
+							data-testid={`todo-delete-${todo.id}`}
 							onClick={() => onDelete(todo.id)}
 							type="button"
 							title="Delete todo"

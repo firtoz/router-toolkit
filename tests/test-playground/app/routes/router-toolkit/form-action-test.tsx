@@ -126,7 +126,9 @@ export default function FormActionTest() {
 							{submitter.data.error.type === "validation" && (
 								<div>
 									<p>Validation errors:</p>
-									<pre>{JSON.stringify(submitter.data.error.error, null, 2)}</pre>
+									<pre>
+										{JSON.stringify(submitter.data.error.error, null, 2)}
+									</pre>
 								</div>
 							)}
 							{submitter.data.error.type === "handler" && (

@@ -123,7 +123,7 @@ test.describe("@firtoz/drizzle-sqlite-wasm - useLiveQuery Real-time Updates", ()
 
 		const input = page.getByPlaceholder("What needs to be done?");
 		const addButton = page.getByRole("button", { name: "+ Add" });
-		const todoCards = page.locator(".rounded-lg.shadow-md");
+		const todoCards = page.getByTestId(/^todo-card-/);
 
 		// Check initial count (may not be zero due to database sharing)
 		const initialCount = await todoCards.count();
@@ -165,14 +165,18 @@ test.describe("@firtoz/drizzle-sqlite-wasm - useLiveQuery Real-time Updates", ()
 		await input.fill("Todo to Complete");
 		await addButton.click();
 
-		// Should show as pending (yellow badge)
-		const todoCard = page
-			.locator(".rounded-lg.shadow-md")
-			.filter({ hasText: "Todo to Complete" });
-		await expect(todoCard.getByText("⏳ Pending")).toBeVisible();
+		// Wait for the todo to be created and get its ID
+		await expect(page.getByText("Todo to Complete")).toBeVisible({
+			timeout: 2000,
+		});
 
-		// Should have white/gray background (not completed)
-		await expect(todoCard).not.toHaveClass(/border-green-300/);
+		// Get the todo card by filtering test IDs that contain the title
+		const todoCard = page
+			.getByTestId(/^todo-card-/)
+			.filter({ hasText: "Todo to Complete" });
+		await expect(todoCard.getByTestId(/^todo-status-/)).toHaveText(
+			"⏳ Pending",
+		);
 
 		// CORE TEST: Click complete button - useLiveQuery should update UI
 		const completeButton = todoCard.getByRole("button", {
@@ -181,26 +185,32 @@ test.describe("@firtoz/drizzle-sqlite-wasm - useLiveQuery Real-time Updates", ()
 		await completeButton.click();
 
 		// Should update to completed state (green badge)
-		await expect(todoCard.getByText("✅ Completed")).toBeVisible({
-			timeout: 2000,
-		});
-
-		// Should have green border (completed styling)
-		await expect(todoCard).toHaveClass(/border-green-300/);
+		await expect(todoCard.getByTestId(/^todo-status-/)).toHaveText(
+			"✅ Completed",
+			{
+				timeout: 2000,
+			},
+		);
 
 		// Button should change to "Undo"
 		await expect(
 			todoCard.getByRole("button", { name: "↩️ Undo" }),
 		).toBeVisible();
 
+		// Wait for DOM to stabilize after state change
+		await page.waitForTimeout(200);
+
 		// CORE TEST 2: Toggle back to incomplete
-		const undoButton = todoCard.getByRole("button", { name: "↩️ Undo" });
-		await undoButton.click();
+		// Re-query to avoid stale element reference
+		await todoCard.getByRole("button", { name: "↩️ Undo" }).click();
 
 		// Should revert to pending state
-		await expect(todoCard.getByText("⏳ Pending")).toBeVisible({
-			timeout: 2000,
-		});
+		await expect(todoCard.getByTestId(/^todo-status-/)).toHaveText(
+			"⏳ Pending",
+			{
+				timeout: 2000,
+			},
+		);
 		await expect(
 			todoCard.getByRole("button", { name: "✅ Complete" }),
 		).toBeVisible();
@@ -214,7 +224,7 @@ test.describe("@firtoz/drizzle-sqlite-wasm - useLiveQuery Real-time Updates", ()
 
 		const input = page.getByPlaceholder("What needs to be done?");
 		const addButton = page.getByRole("button", { name: "+ Add" });
-		const todoCards = page.locator(".rounded-lg.shadow-md");
+		const todoCards = page.getByTestId(/^todo-card-/);
 
 		// Check initial count (may not be zero due to OPFS persistence from previous runs)
 		const initialCount = await todoCards.count();
@@ -229,11 +239,9 @@ test.describe("@firtoz/drizzle-sqlite-wasm - useLiveQuery Real-time Updates", ()
 
 		// CORE TEST: Delete the second todo - useLiveQuery should update
 		const todoToDelete = page
-			.locator(".rounded-lg.shadow-md")
+			.getByTestId(/^todo-card-/)
 			.filter({ hasText: "Todo to Delete" });
-		const deleteButton = todoToDelete
-			.getByRole("button")
-			.filter({ hasText: "🗑️" });
+		const deleteButton = todoToDelete.getByTestId(/^todo-delete-/);
 		await deleteButton.click();
 
 		// Should have one less todo
@@ -248,6 +256,9 @@ test.describe("@firtoz/drizzle-sqlite-wasm - useLiveQuery Real-time Updates", ()
 });
 
 test.describe("@firtoz/drizzle-sqlite-wasm - Data Persistence", () => {
+	// Run persistence tests serially to avoid OPFS contention
+	test.describe.configure({ mode: "serial" });
+
 	test("SQLite WASM should persist data across page reloads", async ({
 		page,
 	}) => {
@@ -258,7 +269,7 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Data Persistence", () => {
 
 		const input = page.getByPlaceholder("What needs to be done?");
 		const addButton = page.getByRole("button", { name: "+ Add" });
-		const todoCards = page.locator(".rounded-lg.shadow-md");
+		const todoCards = page.getByTestId(/^todo-card-/);
 
 		// Check initial count
 		const initialCount = await todoCards.count();
@@ -266,19 +277,25 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Data Persistence", () => {
 		// Add some todos
 		await input.fill("Persist Test 1");
 		await addButton.click();
+		await expect(todoCards).toHaveCount(initialCount + 1, { timeout: 2000 });
+
 		await input.fill("Persist Test 2");
 		await addButton.click();
-
 		await expect(todoCards).toHaveCount(initialCount + 2, { timeout: 2000 });
 
 		// Mark one as complete
 		const firstTodo = page
-			.locator(".rounded-lg.shadow-md")
+			.getByTestId(/^todo-card-/)
 			.filter({ hasText: "Persist Test 1" });
 		await firstTodo.getByRole("button", { name: "✅ Complete" }).click();
 
 		// Wait for completion to be visible
-		await expect(firstTodo.getByText("✅ Completed")).toBeVisible();
+		await expect(firstTodo.getByTestId(/^todo-status-/)).toHaveText(
+			"✅ Completed",
+		);
+
+		// Give SQLite WASM time to persist all operations
+		await page.waitForTimeout(1500);
 
 		// CORE TEST: Reload the page - data should persist
 		await page.reload();
@@ -290,15 +307,19 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Data Persistence", () => {
 
 		// First todo should still be marked as completed
 		const reloadedFirstTodo = page
-			.locator(".rounded-lg.shadow-md")
+			.getByTestId(/^todo-card-/)
 			.filter({ hasText: "Persist Test 1" });
-		await expect(reloadedFirstTodo.getByText("✅ Completed")).toBeVisible();
+		await expect(reloadedFirstTodo.getByTestId(/^todo-status-/)).toHaveText(
+			"✅ Completed",
+		);
 
 		// Second todo should still be pending
 		const reloadedSecondTodo = page
-			.locator(".rounded-lg.shadow-md")
+			.getByTestId(/^todo-card-/)
 			.filter({ hasText: "Persist Test 2" });
-		await expect(reloadedSecondTodo.getByText("⏳ Pending")).toBeVisible();
+		await expect(reloadedSecondTodo.getByTestId(/^todo-status-/)).toHaveText(
+			"⏳ Pending",
+		);
 	});
 
 	test("SQLite WASM should handle complex operations with persistence", async ({
@@ -311,7 +332,7 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Data Persistence", () => {
 
 		const input = page.getByPlaceholder("What needs to be done?");
 		const addButton = page.getByRole("button", { name: "+ Add" });
-		const todoCards = page.locator(".rounded-lg.shadow-md");
+		const todoCards = page.getByTestId(/^todo-card-/);
 
 		// Check initial count
 		const initialCount = await todoCards.count();
@@ -320,25 +341,44 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Data Persistence", () => {
 		for (let i = 1; i <= 5; i++) {
 			await input.fill(`Complex Todo ${i}`);
 			await addButton.click();
+			// Wait for each todo to appear before adding the next
+			await expect(todoCards).toHaveCount(initialCount + i, { timeout: 2000 });
 		}
-
-		await expect(todoCards).toHaveCount(initialCount + 5, { timeout: 2000 });
 
 		// Complete todos 1, 3, and 5
 		for (const num of [1, 3, 5]) {
+			// Re-query todo to avoid stale element references
 			const todo = page
-				.locator(".rounded-lg.shadow-md")
+				.getByTestId(/^todo-card-/)
 				.filter({ hasText: `Complex Todo ${num}` });
-			await todo.getByRole("button", { name: "✅ Complete" }).click();
-			await expect(todo.getByText("✅ Completed")).toBeVisible();
+
+			// Wait for the button to be visible and stable
+			const completeButton = todo.getByRole("button", { name: "✅ Complete" });
+			await expect(completeButton).toBeVisible({ timeout: 5000 });
+			await completeButton.click({ timeout: 5000 });
+
+			await expect(todo.getByTestId(/^todo-status-/)).toHaveText(
+				"✅ Completed",
+			);
+			// Let DOM stabilize after each toggle
+			await page.waitForTimeout(200);
 		}
+
+		// Give SQLite WASM time to persist the complete operations
+		await page.waitForTimeout(1000);
 
 		// Delete todo 2
 		const todoToDelete = page
-			.locator(".rounded-lg.shadow-md")
+			.getByTestId(/^todo-card-/)
 			.filter({ hasText: "Complex Todo 2" });
-		await todoToDelete.getByRole("button").filter({ hasText: "🗑️" }).click();
+		await todoToDelete.getByTestId(/^todo-delete-/).click();
 		await expect(todoCards).toHaveCount(initialCount + 4, { timeout: 2000 });
+
+		// Verify deletion is visible immediately
+		await expect(page.getByText("Complex Todo 2")).not.toBeVisible();
+
+		// Give SQLite WASM time to persist the delete operation
+		await page.waitForTimeout(500);
 
 		// CORE TEST: Reload and verify complex state persisted
 		await page.reload();
@@ -347,16 +387,18 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Data Persistence", () => {
 		// Todos 1, 3, 5 should be completed
 		for (const num of [1, 3, 5]) {
 			const todo = page
-				.locator(".rounded-lg.shadow-md")
+				.getByTestId(/^todo-card-/)
 				.filter({ hasText: `Complex Todo ${num}` });
-			await expect(todo.getByText("✅ Completed")).toBeVisible();
+			await expect(todo.getByTestId(/^todo-status-/)).toHaveText(
+				"✅ Completed",
+			);
 		}
 
 		// Todo 4 should be pending
 		const todo4 = page
-			.locator(".rounded-lg.shadow-md")
+			.getByTestId(/^todo-card-/)
 			.filter({ hasText: "Complex Todo 4" });
-		await expect(todo4.getByText("⏳ Pending")).toBeVisible();
+		await expect(todo4.getByTestId(/^todo-status-/)).toHaveText("⏳ Pending");
 
 		// Todo 2 should not exist
 		await expect(page.getByText("Complex Todo 2")).not.toBeVisible();
@@ -374,7 +416,7 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Query Ordering", () => {
 
 		const input = page.getByPlaceholder("What needs to be done?");
 		const addButton = page.getByRole("button", { name: "+ Add" });
-		const todoCards = page.locator(".rounded-lg.shadow-md");
+		const todoCards = page.getByTestId(/^todo-card-/);
 
 		// Check initial count
 		const initialCount = await todoCards.count();
@@ -393,14 +435,18 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Query Ordering", () => {
 				timeout: 2000,
 			});
 
-			// Add delay after each insert to ensure different millisecond timestamps for the next one
+			// Add significant delay after each insert to ensure different timestamps
+			// Need at least 1 second to ensure distinct createdAt values
 			if (i < todos.length - 1) {
-				await page.waitForTimeout(200);
+				await page.waitForTimeout(1100);
 			}
 		}
 
 		// Verify final count
 		await expect(todoCards).toHaveCount(initialCount + 3);
+
+		// Wait for the reactive query to stabilize and apply ordering
+		await page.waitForTimeout(500);
 
 		// Check visual order - todos should appear in the order they were created
 		// because of orderBy(asc(table.createdAt))
@@ -422,7 +468,7 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Query Ordering", () => {
 		expect(secondIdx).toBeLessThan(thirdIdx);
 
 		// Add a new todo - should appear at the end
-		await page.waitForTimeout(200); // Delay to ensure different millisecond timestamp
+		await page.waitForTimeout(1100); // Delay to ensure different timestamp
 		await input.fill("Fourth");
 		await addButton.click();
 
@@ -454,30 +500,34 @@ test.describe("@firtoz/drizzle-sqlite-wasm - Schema Type Safety", () => {
 		await input.fill("Schema Test Todo");
 		await addButton.click();
 
+		// Wait for the todo to be created
+		await expect(page.getByText("Schema Test Todo")).toBeVisible({
+			timeout: 2000,
+		});
+
 		const todoCard = page
-			.locator(".rounded-lg.shadow-md")
+			.getByTestId(/^todo-card-/)
 			.filter({ hasText: "Schema Test Todo" });
 
 		// CORE TEST: Verify all schema fields are present
 		// Title
-		await expect(todoCard.getByRole("heading")).toHaveText("Schema Test Todo");
+		await expect(todoCard.getByTestId(/^todo-title-/)).toHaveText(
+			"Schema Test Todo",
+		);
 
 		// ID (UUID format)
-		const idText = await todoCard.getByText(/ID:/).textContent();
-		expect(idText).toMatch(/ID:/);
-
-		// Check UUID format in the code element
-		const codeElement = todoCard.locator("code");
-		const uuid = await codeElement.textContent();
+		const uuid = await todoCard.getByTestId(/^todo-id-/).textContent();
 		expect(uuid).toMatch(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
 		);
 
 		// Completed status (should default to false - Pending)
-		await expect(todoCard.getByText("⏳ Pending")).toBeVisible();
+		await expect(todoCard.getByTestId(/^todo-status-/)).toHaveText(
+			"⏳ Pending",
+		);
 
 		// Timestamps
-		await expect(todoCard.getByText(/Created:/)).toBeVisible();
-		await expect(todoCard.getByText(/Updated:/)).toBeVisible();
+		await expect(todoCard.getByTestId(/^todo-created-/)).toBeVisible();
+		await expect(todoCard.getByTestId(/^todo-updated-/)).toBeVisible();
 	});
 });

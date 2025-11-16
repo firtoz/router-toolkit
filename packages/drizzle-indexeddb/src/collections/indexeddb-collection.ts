@@ -739,8 +739,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 		};
 
 		const loadSubset = async (options: LoadSubsetOptions) => {
-			const loadId = Math.random().toString(36).substring(7);
-
 			await config.readyPromise;
 
 			// Ensure indexes are discovered before we try to use them

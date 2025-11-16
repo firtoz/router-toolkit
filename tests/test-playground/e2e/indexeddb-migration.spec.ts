@@ -79,12 +79,8 @@ test.describe("@firtoz/drizzle-sqlite-wasm - IndexedDB Migrations", () => {
 		);
 
 		// Check that the expected tables were created
-		await expect(
-			page.locator(".font-mono.text-sm").filter({ hasText: "todo" }).first(),
-		).toBeVisible();
-		await expect(
-			page.locator(".font-mono.text-sm").filter({ hasText: "user" }).first(),
-		).toBeVisible();
+		await expect(page.getByTestId("object-store-todo")).toBeVisible();
+		await expect(page.getByTestId("object-store-user")).toBeVisible();
 	});
 
 	test("should create correct indexes", async ({ page }) => {
