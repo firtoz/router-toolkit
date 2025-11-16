@@ -34,7 +34,7 @@
 		"db:generate": "bun drizzle-kit generate && bun post-generate.ts"
 	},
 	"devDependencies": {
-		"drizzle-kit": "^0.31.6"
+		"drizzle-kit": "^0.31.7"
 	},
 	"dependencies": {
 		"drizzle-orm": "catalog:",
