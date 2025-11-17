@@ -1,0 +1,716 @@
+# @firtoz/drizzle-sqlite-wasm
+
+TanStack DB collections backed by SQLite WASM running in Web Workers, with full Drizzle ORM integration. Build reactive, type-safe SQLite applications in the browser with non-blocking database operations.
+
+## Installation
+
+```bash
+npm install @firtoz/drizzle-sqlite-wasm @firtoz/drizzle-utils drizzle-orm @tanstack/db
+```
+
+## Features
+
+- 📦 **TanStack DB collections** - Reactive collections with type safety (primary feature)
+- 🔄 **Web Worker support** - Non-blocking SQLite in a dedicated worker
+- ⚡ **Drizzle ORM** - Full type-safe query builder
+- 🎯 **Type-safe** - Full TypeScript support with automatic type inference
+- 🔍 **Query optimization** - Leverage SQLite indexes for fast queries
+- 📊 **Performance monitoring** - Built-in performance tracking
+- ⚛️ **React hooks** - Provider and hooks for easy integration
+- 🔄 **Migrations** - Automatic schema migrations with Drizzle snapshots
+- 🔌 **Bundler agnostic** - Works with Vite, Webpack, Parcel, and more
+- 🗄️ **IndexedDB fallback** - Seamless integration with IndexedDB for offline-first apps
+
+## Quick Start
+
+### 1. Define Your Schema
+
+```typescript
+// schema.ts
+import { syncableTable } from "@firtoz/drizzle-utils";
+import { text, integer } from "drizzle-orm/sqlite-core";
+
+export const todoTable = syncableTable("todos", {
+  title: text("title").notNull(),
+  completed: integer("completed", { mode: "boolean" }).notNull().default(false),
+  description: text("description"),
+});
+
+export const schema = { todoTable };
+```
+
+### 2. Generate Migrations
+
+```bash
+# Generate Drizzle migrations
+drizzle-kit generate
+```
+
+### 3. Setup Worker (Vite Example)
+
+```typescript
+// App.tsx
+import { DrizzleSqliteProvider } from "@firtoz/drizzle-sqlite-wasm";
+import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
+import * as schema from "./schema";
+import migrations from "./migrations";
+
+function App() {
+  return (
+    <DrizzleSqliteProvider
+      worker={SqliteWorker}
+      dbName="my-app"
+      schema={schema}
+      migrations={migrations}
+    >
+      <TodoApp />
+    </DrizzleSqliteProvider>
+  );
+}
+```
+
+### 4. Use in Components
+
+```typescript
+// TodoList.tsx
+import { useDrizzleContext, useCollection } from "@firtoz/drizzle-sqlite-wasm";
+import { todoTable } from "./schema";
+
+function TodoList() {
+  const { drizzle } = useDrizzleContext();
+  
+  // Option 1: Use Drizzle ORM directly
+  const loadTodos = async () => {
+    const todos = await drizzle.select().from(todoTable).all();
+    return todos;
+  };
+  
+  // Option 2: Use TanStack DB collection
+  const collection = useCollection("todos");
+  const [todos] = collection.useStore();
+  
+  return (
+    <ul>
+      {todos.map(todo => (
+        <li key={todo.id}>{todo.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+## Bundler Support
+
+### Vite
+
+Vite has built-in support for Web Workers with the `?worker` suffix:
+
+```typescript
+import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
+
+const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+```
+
+### Webpack 5+
+
+Use `new URL()` with `import.meta.url`:
+
+```typescript
+const SqliteWorker = class extends Worker {
+  constructor() {
+    super(
+      new URL("@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker", import.meta.url),
+      { type: "module" }
+    );
+  }
+};
+
+const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+```
+
+### Parcel 2+
+
+Similar to Webpack:
+
+```typescript
+const SqliteWorker = class extends Worker {
+  constructor() {
+    super(
+      new URL("@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker", import.meta.url)
+    );
+  }
+};
+
+const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+```
+
+## TanStack DB Collections
+
+The primary feature of this package: Create reactive, type-safe collections backed by SQLite WASM.
+
+### Basic Usage
+
+Create TanStack DB collections backed by SQLite:
+
+```typescript
+import { createCollection } from "@tanstack/db";
+import { drizzleCollectionOptions } from "@firtoz/drizzle-sqlite-wasm/drizzleCollectionOptions";
+
+const collection = createCollection(
+  drizzleCollectionOptions({
+    drizzle,
+    tableName: "todos",
+    readyPromise,
+    syncMode: "on-demand", // or "realtime"
+  })
+);
+
+// CRUD operations
+await collection.insert({ title: "Buy milk", completed: false });
+await collection.update(todoId, { completed: true });
+await collection.delete(todoId); // Soft delete (sets deletedAt)
+
+// Query with filters
+const completed = await collection.find({
+  where: { completed: true },
+  orderBy: { createdAt: "desc" },
+});
+
+// Subscribe to changes
+collection.subscribe((todos) => {
+  console.log("Todos updated:", todos);
+});
+```
+
+### Collection Options
+
+**Config:**
+- `drizzle: DrizzleDB` - Drizzle instance
+- `tableName: string` - Table name
+- `readyPromise: Promise<void>` - Database ready promise
+- `syncMode?: "on-demand" | "realtime"` - Sync mode
+
+### IndexedDB Fallback
+
+Re-exported from `@firtoz/drizzle-indexeddb` for offline-first apps:
+
+```typescript
+import { indexedDBCollectionOptions } from "@firtoz/drizzle-sqlite-wasm";
+
+const collection = createCollection(
+  indexedDBCollectionOptions({
+    db: indexedDB,
+    tableName: "todos",
+  })
+);
+```
+
+Use IndexedDB for offline-first sync layer with consistent API across both storage backends.
+
+## API Reference
+
+### React Hooks
+
+#### `DrizzleSqliteProvider`
+
+Context provider for SQLite WASM:
+
+```typescript
+<DrizzleSqliteProvider
+  worker={SqliteWorker}           // Worker constructor
+  dbName="my-app"                 // Database name
+  schema={schema}                 // Drizzle schema
+  migrations={migrations}         // Migration config
+>
+  {children}
+</DrizzleSqliteProvider>
+```
+
+**Props:**
+- `worker: new () => Worker` - Worker constructor (bundler-specific)
+- `dbName: string` - Name of the SQLite database
+- `schema: TSchema` - Drizzle schema object
+- `migrations: DurableSqliteMigrationConfig` - Migration configuration
+
+#### `useDrizzle(worker, dbName, schema, migrations)`
+
+Hook to create a Drizzle instance with Web Worker:
+
+```typescript
+function MyComponent() {
+  const { drizzle, readyPromise } = useDrizzle(
+    SqliteWorker,
+    "my-app",
+    schema,
+    migrations
+  );
+  
+  useEffect(() => {
+    readyPromise.then(() => {
+      console.log("Database ready!");
+    });
+  }, [readyPromise]);
+  
+  // Use drizzle...
+}
+```
+
+**Returns:**
+- `drizzle: DrizzleDB` - Drizzle ORM instance
+- `readyPromise: Promise<void>` - Resolves when database is ready
+
+#### `useDrizzleContext()`
+
+Access the Drizzle context:
+
+```typescript
+function MyComponent() {
+  const { drizzle, getCollection } = useDrizzleContext();
+  
+  // Use drizzle or get collections...
+}
+```
+
+**Returns:**
+- `drizzle: DrizzleDB` - Drizzle ORM instance
+- `getCollection: (tableName) => Collection` - Get TanStack DB collection
+
+#### `useCollection(tableName)`
+
+Hook for a specific collection with automatic ref counting:
+
+```typescript
+function TodoList() {
+  const collection = useCollection("todos");
+  const [todos] = collection.useStore();
+  
+  // Collection is automatically cleaned up on unmount
+}
+```
+
+### Worker API
+
+#### `SqliteWorkerClient`
+
+Type-safe client for SQLite Web Worker:
+
+```typescript
+import { SqliteWorkerClient } from "@firtoz/drizzle-sqlite-wasm";
+
+const worker = new Worker(/* worker URL */);
+const client = new SqliteWorkerClient(worker, "mydb", true); // debug flag
+
+client.onStarted(() => {
+  console.log("Database started!");
+});
+
+// Use with Drizzle
+import { drizzleSqliteWasmWorker } from "@firtoz/drizzle-sqlite-wasm/drizzle-sqlite-wasm-worker";
+
+const drizzle = drizzleSqliteWasmWorker(client, { schema });
+```
+
+#### `SqliteWorkerManager`
+
+Manages multiple SQLite databases in a single worker:
+
+```typescript
+import { getSqliteWorkerManager, initializeSqliteWorker } from "@firtoz/drizzle-sqlite-wasm";
+
+// Initialize global worker
+await initializeSqliteWorker(SqliteWorker, true);
+
+// Get manager
+const manager = getSqliteWorkerManager();
+
+// Get database instance
+const db = manager.getDatabase("mydb");
+```
+
+**Global Functions:**
+- `initializeSqliteWorker(Worker, debug?)` - Initialize the global worker
+- `getSqliteWorkerManager()` - Get the global manager instance
+- `isSqliteWorkerInitialized()` - Check if worker is initialized
+- `resetSqliteWorkerManager()` - Reset the global manager
+
+### Direct SQLite (Non-Worker)
+
+#### `drizzleSqliteWasm(sqliteDb, config, debug?)`
+
+Use SQLite WASM directly in the main thread (for testing or synchronous contexts):
+
+```typescript
+import { drizzleSqliteWasm } from "@firtoz/drizzle-sqlite-wasm";
+import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
+
+const sqlite3 = await sqlite3InitModule();
+const sqliteDb = new sqlite3.oo1.DB("/mydb.db", "ct");
+
+const drizzle = drizzleSqliteWasm(sqliteDb, { schema }, true);
+
+// Use drizzle normally
+const todos = await drizzle.select().from(todoTable).all();
+```
+
+### Migrations
+
+#### `customSqliteMigrate(config)`
+
+Run custom SQLite migrations:
+
+```typescript
+import { customSqliteMigrate } from "@firtoz/drizzle-sqlite-wasm/sqlite-wasm-migrator";
+
+await customSqliteMigrate({
+  database: sqliteDb,
+  journal: journalData,
+  migrations: {
+    "0000_init": "CREATE TABLE todos (id TEXT PRIMARY KEY, title TEXT NOT NULL);",
+    "0001_add_completed": "ALTER TABLE todos ADD COLUMN completed INTEGER DEFAULT 0;",
+  },
+  debug: true,
+});
+```
+
+**Config:**
+- `database: Database` - SQLite WASM database instance
+- `journal: Journal` - Drizzle journal
+- `migrations: Record<string, string>` - SQL migration strings
+- `debug?: boolean` - Enable debug logging
+
+### Performance Utilities
+
+Built-in performance monitoring:
+
+```typescript
+import {
+  getPerformanceMetrics,
+  getPerformanceMarks,
+  logPerformanceMetrics,
+  exportPerformanceData,
+  clearPerformanceData,
+  createPerformanceObserver,
+} from "@firtoz/drizzle-sqlite-wasm";
+
+// Get metrics
+const metrics = getPerformanceMetrics();
+console.log("Query time:", metrics.avgQueryTime);
+
+// Log all metrics
+logPerformanceMetrics();
+
+// Export for analysis
+const data = exportPerformanceData();
+
+// Clear history
+clearPerformanceData();
+
+// Custom observer
+const observer = createPerformanceObserver((entries) => {
+  for (const entry of entries) {
+    console.log(`${entry.name}: ${entry.duration}ms`);
+  }
+});
+```
+
+## Advanced Usage
+
+### Multiple Databases
+
+```typescript
+function App() {
+  return (
+    <>
+      <DrizzleSqliteProvider
+        worker={SqliteWorker}
+        dbName="app-data"
+        schema={appSchema}
+        migrations={appMigrations}
+      >
+        <AppContent />
+      </DrizzleSqliteProvider>
+      
+      <DrizzleSqliteProvider
+        worker={SqliteWorker}
+        dbName="cache-data"
+        schema={cacheSchema}
+        migrations={cacheMigrations}
+      >
+        <CacheManager />
+      </DrizzleSqliteProvider>
+    </>
+  );
+}
+```
+
+### Custom Worker Configuration
+
+```typescript
+import { initializeSqliteWorker, getSqliteWorkerManager } from "@firtoz/drizzle-sqlite-wasm";
+
+// Initialize with custom worker
+await initializeSqliteWorker(MyCustomWorker, true);
+
+// Get manager for manual control
+const manager = getSqliteWorkerManager();
+
+// Access databases
+const db1 = manager.getDatabase("app-data");
+const db2 = manager.getDatabase("cache-data");
+```
+
+### Hybrid SQLite + IndexedDB
+
+Use SQLite for main data and IndexedDB for offline sync:
+
+```typescript
+import { 
+  drizzleCollectionOptions,
+  indexedDBCollectionOptions 
+} from "@firtoz/drizzle-sqlite-wasm";
+
+// SQLite for main storage
+const sqliteCollection = createCollection(
+  drizzleCollectionOptions({
+    drizzle,
+    tableName: "todos",
+    readyPromise,
+  })
+);
+
+// IndexedDB for offline queue
+const syncQueueCollection = createCollection(
+  indexedDBCollectionOptions({
+    db: indexedDB,
+    tableName: "sync_queue",
+  })
+);
+
+// Sync between them
+async function syncToServer() {
+  const queue = await syncQueueCollection.find();
+  
+  for (const item of queue) {
+    // Sync to server...
+    await syncQueueCollection.delete(item.id);
+  }
+}
+```
+
+### Complex Queries with Drizzle
+
+```typescript
+import { eq, and, or, gt, like, desc } from "drizzle-orm";
+import { todoTable } from "./schema";
+
+function TodoComponent() {
+  const { drizzle } = useDrizzleContext();
+  
+  const searchTodos = async (searchTerm: string) => {
+    return await drizzle
+      .select()
+      .from(todoTable)
+      .where(
+        and(
+          like(todoTable.title, `%${searchTerm}%`),
+          eq(todoTable.completed, false),
+          gt(todoTable.createdAt, yesterday)
+        )
+      )
+      .orderBy(desc(todoTable.createdAt))
+      .limit(10)
+      .all();
+  };
+}
+```
+
+### Transaction Support
+
+```typescript
+function TodoComponent() {
+  const { drizzle } = useDrizzleContext();
+  
+  const createTodoWithCategory = async (title: string, category: string) => {
+    return await drizzle.transaction(async (tx) => {
+      // Insert category if it doesn't exist
+      const [existingCategory] = await tx
+        .select()
+        .from(categoryTable)
+        .where(eq(categoryTable.name, category))
+        .limit(1)
+        .all();
+      
+      let categoryId = existingCategory?.id;
+      
+      if (!categoryId) {
+        const [newCategory] = await tx
+          .insert(categoryTable)
+          .values({ name: category })
+          .returning();
+        categoryId = newCategory.id;
+      }
+      
+      // Insert todo
+      const [todo] = await tx
+        .insert(todoTable)
+        .values({ title, categoryId })
+        .returning();
+      
+      return todo;
+    });
+  };
+}
+```
+
+## Performance Best Practices
+
+### 1. Use Indexes
+
+```typescript
+const todoTable = syncableTable("todos", {
+  title: text("title").notNull(),
+  completed: integer("completed", { mode: "boolean" }).notNull(),
+  userId: text("userId").notNull(),
+}, (table) => [
+  index("completed_idx").on(table.completed),
+  index("user_id_idx").on(table.userId),
+  index("user_completed_idx").on(table.userId, table.completed),
+]);
+```
+
+### 2. Use Web Workers
+
+Always use the Worker mode for production to keep the UI responsive:
+
+```typescript
+// ✅ Good - Non-blocking
+const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+
+// ❌ Bad - Blocks UI thread
+const drizzle = drizzleSqliteWasm(sqliteDb, { schema });
+```
+
+### 3. Batch Operations
+
+```typescript
+// ✅ Good - Single transaction
+await drizzle.insert(todoTable).values([
+  { title: "Todo 1" },
+  { title: "Todo 2" },
+  { title: "Todo 3" },
+]);
+
+// ❌ Bad - Multiple transactions
+for (const title of titles) {
+  await drizzle.insert(todoTable).values({ title });
+}
+```
+
+### 4. Use Collections for Reactive Data
+
+```typescript
+// ✅ Good - Reactive updates
+const collection = useCollection("todos");
+const [todos] = collection.useStore(); // Automatically updates
+
+// ❌ Bad - Manual polling
+useEffect(() => {
+  const interval = setInterval(loadTodos, 1000);
+  return () => clearInterval(interval);
+}, []);
+```
+
+## Troubleshooting
+
+### Worker Not Loading
+
+**Vite:** Make sure you're using the `?worker` suffix:
+```typescript
+import SqliteWorker from "path/to/sqlite.worker?worker";
+```
+
+**Webpack:** Check that worker-loader is configured or use `new URL()` pattern
+
+### Database Not Ready
+
+Always wait for the ready promise:
+
+```typescript
+const { drizzle, readyPromise } = useDrizzle(/* ... */);
+
+useEffect(() => {
+  readyPromise.then(() => {
+    // Now safe to query
+    loadData();
+  });
+}, [readyPromise]);
+```
+
+### Performance Issues
+
+- Enable debug mode to see timing: `useDrizzle(Worker, dbName, schema, migrations, true)`
+- Check Performance tab in DevTools
+- Use `logPerformanceMetrics()` to see query performance
+- Add indexes to frequently queried columns
+
+### Migration Errors
+
+Check the console for specific errors. Common issues:
+- Missing migration files
+- Invalid SQL in migrations
+- Schema conflicts
+
+Enable debug mode for detailed logs:
+```typescript
+<DrizzleSqliteProvider
+  worker={SqliteWorker}
+  dbName="mydb"
+  schema={schema}
+  migrations={migrations}
+  debug={true}  // Enable debug logging
+>
+```
+
+## Type Utilities
+
+Re-exported from `@firtoz/drizzle-utils`:
+
+```typescript
+import {
+  syncableTable,
+  makeId,
+  type IdOf,
+  type TableId,
+  type Branded,
+  type IdType,
+  type SelectSchema,
+  type InsertSchema,
+} from "@firtoz/drizzle-sqlite-wasm";
+```
+
+## Examples
+
+Check out the test playground for complete examples:
+- `tests/test-playground/app/routes/sqlite/` - React components using SQLite
+- `tests/test-playground/e2e/` - E2E tests
+
+## Dependencies
+
+- `@firtoz/drizzle-indexeddb`
+- `@firtoz/drizzle-utils`
+- `@firtoz/maybe-error`
+- `@firtoz/worker-helper`
+- `@sqlite.org/sqlite-wasm`
+- `drizzle-orm`
+- `@tanstack/db`
+- `react`
+- `zod`
+
+## License
+
+MIT
+
+## Author
+
+Firtina Ozbalikchi <firtoz@github.com>
+
