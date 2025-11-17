@@ -32,6 +32,10 @@ export type IndexedDBSyncItem = {
 	[key: string]: unknown;
 };
 
+// WORKAROUND: DeduplicatedLoadSubset has a bug where toggling queries (e.g., isNull/isNotNull)
+// creates invalid expressions like not(or(isNull(...), not(isNull(...))))
+// See: https://github.com/TanStack/db/issues/828
+// TODO: Re-enable once the bug is fixed
 const useDedupe = false as boolean;
 
 export interface IndexedDBCollectionConfig<TTable extends Table> {
@@ -642,8 +646,6 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 				);
 				const store = transaction.objectStore(config.storeName);
 
-				const updatedKeys: string[] = [];
-
 				for (const item of params.transaction.mutations) {
 					const existing = await getFromStoreInTransaction(store, item.key);
 
@@ -656,33 +658,11 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 						} as IndexedDBSyncItem;
 
 						await updateInStoreInTransaction(store, updatedItem);
-						updatedKeys.push(item.key);
 					}
 				}
 
 				// Wait for transaction to complete
 				await commitTransaction(transaction);
-
-				// Read back the updated items
-				begin();
-				for (const key of updatedKeys) {
-					const updated = await getFromStore(
-						// biome-ignore lint/style/noNonNullAssertion: DB is guaranteed to be ready after readyPromise resolves
-						config.indexedDBRef.current!,
-						config.storeName,
-						key,
-					);
-
-					if (updated) {
-						write({
-							type: "update",
-							value: updated as unknown as InferSchemaOutput<
-								SelectSchema<TTable>
-							>,
-						});
-					}
-				}
-				commit();
 			} catch (error) {
 				begin();
 				for (const item of params.transaction.mutations) {

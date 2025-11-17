@@ -3,6 +3,7 @@
 import type {
 	CollectionConfig,
 	InferSchemaOutput,
+	LoadSubsetOptions,
 	SyncConfig,
 	SyncConfigRes,
 	SyncMode,
@@ -39,6 +40,12 @@ import type {
 	SelectSchema,
 	TableWithRequiredFields,
 } from "@firtoz/drizzle-utils";
+
+// WORKAROUND: DeduplicatedLoadSubset has a bug where toggling queries (e.g., isNull/isNotNull)
+// creates invalid expressions like not(or(isNull(...), not(isNull(...))))
+// See: https://github.com/TanStack/db/issues/828
+// TODO: Re-enable once the bug is fixed
+const useDedupe = false as boolean;
 
 export type AnyDrizzleDatabase = BaseSQLiteDatabase<
 	"async",
@@ -230,25 +237,17 @@ export function drizzleCollectionOptions<
 		}
 
 		insertListener = async (params) => {
-			begin();
-			for (const item of params.transaction.mutations) {
-				if (config.debug) {
-					console.log(
-						`[${new Date().toISOString()}] insertListener write`,
-						item,
-					);
-				}
-				write({
-					type: "insert",
-					value: item.modified,
-				});
-			}
-			commit();
-
 			try {
 				await config.drizzle.transaction(async (tx) => {
 					begin();
 					for (const item of params.transaction.mutations) {
+						if (config.debug) {
+							console.log(
+								`[${new Date().toISOString()}] insertListener inserting`,
+								item,
+							);
+						}
+
 						const result: Array<InferSchemaOutput<SelectSchema<TTable>>> =
 							(await tx
 								.insert(table)
@@ -263,8 +262,9 @@ export function drizzleCollectionOptions<
 						}
 
 						if (result.length > 0) {
+							// Write the actual result from the database (with defaults applied)
 							write({
-								type: "update",
+								type: "insert",
 								value: result[0] as unknown as InferSchemaOutput<
 									SelectSchema<TTable>
 								>,
@@ -274,39 +274,23 @@ export function drizzleCollectionOptions<
 					commit();
 				});
 			} catch (error) {
-				begin();
-				for (const item of params.transaction.mutations) {
-					write({
-						type: "delete",
-						value: item.modified,
-					});
-				}
-				commit();
-
+				// No need for rollback since we never wrote optimistically
 				throw error;
 			}
 		};
 
 		updateListener = async (params) => {
-			begin();
-			for (const item of params.transaction.mutations) {
-				if (config.debug) {
-					console.log(
-						`[${new Date().toISOString()}] updateListener write`,
-						item,
-					);
-				}
-				write({
-					type: "update",
-					value: item.modified,
-				});
-			}
-			commit();
-
 			try {
 				await config.drizzle.transaction(async (tx) => {
 					begin();
 					for (const item of params.transaction.mutations) {
+						if (config.debug) {
+							console.log(
+								`[${new Date().toISOString()}] updateListener updating`,
+								item,
+							);
+						}
+
 						const updateTime = new Date();
 						const result: Array<InferSchemaOutput<SelectSchema<TTable>>> =
 							(await tx
@@ -326,6 +310,7 @@ export function drizzleCollectionOptions<
 						}
 
 						if (result.length > 0) {
+							// Write the actual result from the database
 							write({
 								type: "update",
 								value: result[0] as unknown as InferSchemaOutput<
@@ -337,16 +322,7 @@ export function drizzleCollectionOptions<
 					commit();
 				});
 			} catch (error) {
-				begin();
-				for (const item of params.transaction.mutations) {
-					const original = item.original;
-					write({
-						type: "update",
-						value: original,
-					});
-				}
-				commit();
-
+				// No need for rollback since we never wrote optimistically
 				throw error;
 			}
 		};
@@ -388,67 +364,72 @@ export function drizzleCollectionOptions<
 			}
 		};
 
-		// Create deduplicated loadSubset wrapper to avoid redundant queries
-		const loadSubsetDedupe = new DeduplicatedLoadSubset({
-			loadSubset: async (options) => {
-				await config.readyPromise;
+		const loadSubset = async (options: LoadSubsetOptions) => {
+			await config.readyPromise;
 
-				begin();
+			begin();
 
-				try {
-					// Build the query with optional where, orderBy, and limit
-					// Use $dynamic() to enable dynamic query building
-					let query = config.drizzle.select().from(table).$dynamic();
+			try {
+				// Build the query with optional where, orderBy, and limit
+				// Use $dynamic() to enable dynamic query building
+				let query = config.drizzle.select().from(table).$dynamic();
 
-					// Convert TanStack DB IR expressions to Drizzle expressions
-					if (options.where) {
-						const drizzleWhere = convertBasicExpressionToDrizzle(
-							options.where,
-							table,
-						);
-						query = query.where(drizzleWhere);
-					}
-
-					if (options.orderBy) {
-						const drizzleOrderBy = convertOrderByToDrizzle(
-							options.orderBy,
-							table,
-						);
-						query = query.orderBy(...drizzleOrderBy);
-					}
-
-					if (options.limit !== undefined) {
-						query = query.limit(options.limit);
-					}
-
-					const items = (await query) as unknown as InferSchemaOutput<
-						SelectSchema<TTable>
-					>[];
-
-					for (const item of items) {
-						write({
-							type: "insert",
-							value: item,
-						});
-					}
-
-					commit();
-				} catch (error) {
-					// If there's an error, we should still commit to maintain consistency
-					commit();
-					throw error;
+				// Convert TanStack DB IR expressions to Drizzle expressions
+				if (options.where) {
+					const drizzleWhere = convertBasicExpressionToDrizzle(
+						options.where,
+						table,
+					);
+					query = query.where(drizzleWhere);
 				}
-			},
-		});
+
+				if (options.orderBy) {
+					const drizzleOrderBy = convertOrderByToDrizzle(
+						options.orderBy,
+						table,
+					);
+					query = query.orderBy(...drizzleOrderBy);
+				}
+
+				if (options.limit !== undefined) {
+					query = query.limit(options.limit);
+				}
+
+				const items = (await query) as unknown as InferSchemaOutput<
+					SelectSchema<TTable>
+				>[];
+
+				for (const item of items) {
+					write({
+						type: "insert",
+						value: item,
+					});
+				}
+
+				commit();
+			} catch (error) {
+				// If there's an error, we should still commit to maintain consistency
+				commit();
+				throw error;
+			}
+		};
+
+		// Create deduplicated loadSubset wrapper to avoid redundant queries
+		let loadSubsetDedupe: DeduplicatedLoadSubset | null = null;
+		if (useDedupe) {
+			loadSubsetDedupe = new DeduplicatedLoadSubset({
+				loadSubset,
+			});
+		}
 
 		return {
 			cleanup: () => {
 				insertListener = null;
 				updateListener = null;
 				deleteListener = null;
-				loadSubsetDedupe.reset();
+				loadSubsetDedupe?.reset();
 			},
-			loadSubset: loadSubsetDedupe.loadSubset,
+			loadSubset: loadSubsetDedupe?.loadSubset ?? loadSubset,
 		} satisfies SyncConfigRes;
 	};
 
