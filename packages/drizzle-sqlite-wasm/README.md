@@ -75,11 +75,11 @@ function App() {
 
 ```typescript
 // TodoList.tsx
-import { useDrizzleContext, useCollection } from "@firtoz/drizzle-sqlite-wasm";
+import { useDrizzleSqlite, useSqliteCollection } from "@firtoz/drizzle-sqlite-wasm";
 import { todoTable } from "./schema";
 
 function TodoList() {
-  const { drizzle } = useDrizzleContext();
+  const { drizzle } = useDrizzleSqlite();
   
   // Option 1: Use Drizzle ORM directly
   const loadTodos = async () => {
@@ -88,7 +88,7 @@ function TodoList() {
   };
   
   // Option 2: Use TanStack DB collection
-  const collection = useCollection("todos");
+  const collection = useSqliteCollection("todos");
   const [todos] = collection.useStore();
   
   return (
@@ -110,7 +110,7 @@ Vite has built-in support for Web Workers with the `?worker` suffix:
 ```typescript
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 
-const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+const { drizzle } = useDrizzleSqliteDb(SqliteWorker, "mydb", schema, migrations);
 ```
 
 ### Webpack 5+
@@ -127,7 +127,7 @@ const SqliteWorker = class extends Worker {
   }
 };
 
-const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+const { drizzle } = useDrizzleSqliteDb(SqliteWorker, "mydb", schema, migrations);
 ```
 
 ### Parcel 2+
@@ -143,7 +143,7 @@ const SqliteWorker = class extends Worker {
   }
 };
 
-const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+const { drizzle } = useDrizzleSqliteDb(SqliteWorker, "mydb", schema, migrations);
 ```
 
 ## TanStack DB Collections
@@ -234,13 +234,13 @@ Context provider for SQLite WASM:
 - `schema: TSchema` - Drizzle schema object
 - `migrations: DurableSqliteMigrationConfig` - Migration configuration
 
-#### `useDrizzle(worker, dbName, schema, migrations)`
+#### `useDrizzleSqliteDb(worker, dbName, schema, migrations)`
 
 Hook to create a Drizzle instance with Web Worker:
 
 ```typescript
 function MyComponent() {
-  const { drizzle, readyPromise } = useDrizzle(
+  const { drizzle, readyPromise } = useDrizzleSqliteDb(
     SqliteWorker,
     "my-app",
     schema,
@@ -261,13 +261,13 @@ function MyComponent() {
 - `drizzle: DrizzleDB` - Drizzle ORM instance
 - `readyPromise: Promise<void>` - Resolves when database is ready
 
-#### `useDrizzleContext()`
+#### `useDrizzleSqlite()`
 
 Access the Drizzle context:
 
 ```typescript
 function MyComponent() {
-  const { drizzle, getCollection } = useDrizzleContext();
+  const { drizzle, getCollection } = useDrizzleSqlite();
   
   // Use drizzle or get collections...
 }
@@ -277,13 +277,13 @@ function MyComponent() {
 - `drizzle: DrizzleDB` - Drizzle ORM instance
 - `getCollection: (tableName) => Collection` - Get TanStack DB collection
 
-#### `useCollection(tableName)`
+#### `useSqliteCollection(tableName)`
 
 Hook for a specific collection with automatic ref counting:
 
 ```typescript
 function TodoList() {
-  const collection = useCollection("todos");
+  const collection = useSqliteCollection("todos");
   const [todos] = collection.useStore();
   
   // Collection is automatically cleaned up on unmount
@@ -506,7 +506,7 @@ import { eq, and, or, gt, like, desc } from "drizzle-orm";
 import { todoTable } from "./schema";
 
 function TodoComponent() {
-  const { drizzle } = useDrizzleContext();
+  const { drizzle } = useDrizzleSqlite();
   
   const searchTodos = async (searchTerm: string) => {
     return await drizzle
@@ -530,7 +530,7 @@ function TodoComponent() {
 
 ```typescript
 function TodoComponent() {
-  const { drizzle } = useDrizzleContext();
+  const { drizzle } = useDrizzleSqlite();
   
   const createTodoWithCategory = async (title: string, category: string) => {
     return await drizzle.transaction(async (tx) => {
@@ -586,7 +586,7 @@ Always use the Worker mode for production to keep the UI responsive:
 
 ```typescript
 // ✅ Good - Non-blocking
-const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+const { drizzle } = useDrizzleSqliteDb(SqliteWorker, "mydb", schema, migrations);
 
 // ❌ Bad - Blocks UI thread
 const drizzle = drizzleSqliteWasm(sqliteDb, { schema });
@@ -612,7 +612,7 @@ for (const title of titles) {
 
 ```typescript
 // ✅ Good - Reactive updates
-const collection = useCollection("todos");
+const collection = useSqliteCollection("todos");
 const [todos] = collection.useStore(); // Automatically updates
 
 // ❌ Bad - Manual polling
@@ -638,7 +638,7 @@ import SqliteWorker from "path/to/sqlite.worker?worker";
 Always wait for the ready promise:
 
 ```typescript
-const { drizzle, readyPromise } = useDrizzle(/* ... */);
+const { drizzle, readyPromise } = useDrizzleSqliteDb(/* ... */);
 
 useEffect(() => {
   readyPromise.then(() => {
@@ -650,7 +650,7 @@ useEffect(() => {
 
 ### Performance Issues
 
-- Enable debug mode to see timing: `useDrizzle(Worker, dbName, schema, migrations, true)`
+- Enable debug mode to see timing: `useDrizzleSqliteDb(Worker, dbName, schema, migrations, true)`
 - Check Performance tab in DevTools
 - Use `logPerformanceMetrics()` to see query performance
 - Add indexes to frequently queried columns

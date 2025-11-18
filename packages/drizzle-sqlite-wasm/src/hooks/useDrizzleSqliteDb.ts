@@ -10,7 +10,7 @@ import {
 	isSqliteWorkerInitialized,
 } from "../worker/global-manager";
 
-export const useDrizzle = <TSchema extends Record<string, unknown>>(
+export const useDrizzleSqliteDb = <TSchema extends Record<string, unknown>>(
 	WorkerConstructor: new () => Worker,
 	dbName: string,
 	schema: TSchema,

@@ -80,19 +80,19 @@ Initial release of `@firtoz/drizzle-sqlite-wasm` - TanStack DB collections backe
 - Collection caching with ref counting
 - Type-safe context
 
-**`useDrizzle(Worker, dbName, schema, migrations)`** - React hook for SQLite:
+**`useDrizzleSqliteDb(Worker, dbName, schema, migrations)`** - React hook for SQLite:
 
 - Automatic worker management
 - Migration handling
 - Ready promise for initialization tracking
 - Bundler-agnostic Worker support
 
-**`useDrizzleContext()`** - Access Drizzle SQLite context:
+**`useDrizzleSqlite()`** - Access Drizzle SQLite context:
 
 - Get Drizzle instance
 - Access collections with type safety
 
-**`useCollection(tableName)`** - Hook for specific collections:
+**`useSqliteCollection(tableName)`** - Hook for specific collections:
 
 - Automatic ref counting
 - Type-safe collection access
@@ -124,7 +124,7 @@ Works with all major bundlers:
 **Vite:**
 ```typescript
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
-const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+const { drizzle } = useDrizzleSqliteDb(SqliteWorker, "mydb", schema, migrations);
 ```
 
 **Webpack 5+:**
@@ -137,7 +137,7 @@ const SqliteWorker = class extends Worker {
     );
   }
 };
-const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+const { drizzle } = useDrizzleSqliteDb(SqliteWorker, "mydb", schema, migrations);
 ```
 
 **Parcel 2+:**
@@ -149,13 +149,13 @@ const SqliteWorker = class extends Worker {
     );
   }
 };
-const { drizzle } = useDrizzle(SqliteWorker, "mydb", schema, migrations);
+const { drizzle } = useDrizzleSqliteDb(SqliteWorker, "mydb", schema, migrations);
 ```
 
 ## Example
 
 ```typescript
-import { DrizzleSqliteProvider, useDrizzle } from "@firtoz/drizzle-sqlite-wasm";
+import { DrizzleSqliteProvider, useDrizzleSqliteDb } from "@firtoz/drizzle-sqlite-wasm";
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 import * as schema from "./schema";
 import migrations from "./migrations";
@@ -174,13 +174,13 @@ function App() {
 }
 
 function TodoList() {
-  const { drizzle } = useDrizzle(SqliteWorker, "my-app-db", schema, migrations);
+  const { drizzle } = useDrizzleSqliteDb(SqliteWorker, "my-app-db", schema, migrations);
   
   // Use Drizzle ORM
   const todos = await drizzle.select().from(schema.todoTable);
   
   // Or use TanStack DB collections
-  const collection = useCollection("todos");
+  const collection = useSqliteCollection("todos");
 }
 ```
 

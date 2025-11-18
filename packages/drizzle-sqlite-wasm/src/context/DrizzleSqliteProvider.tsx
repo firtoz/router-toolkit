@@ -12,7 +12,7 @@ import {
 	type DrizzleSchema,
 	sqliteCollectionOptions,
 } from "../collections/sqlite-collection";
-import { useDrizzle } from "../hooks/useDrizzle";
+import { useDrizzleSqliteDb } from "../hooks/useDrizzleSqliteDb";
 import type { DurableSqliteMigrationConfig } from "../migration/migrator";
 import type {
 	IdOf,
@@ -72,7 +72,7 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 	migrations,
 	debug,
 }: DrizzleSqliteProviderProps<TSchema>) {
-	const { drizzle, readyPromise } = useDrizzle(
+	const { drizzle, readyPromise } = useDrizzleSqliteDb(
 		worker,
 		dbName,
 		schema,

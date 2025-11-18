@@ -16,7 +16,7 @@ export {
 	type IndexedDBCollectionConfig,
 	type IndexedDBSyncItem,
 } from "@firtoz/drizzle-indexeddb";
-export { useDrizzle } from "./hooks/useDrizzle";
+export { useDrizzleSqliteDb } from "./hooks/useDrizzleSqliteDb";
 // SQLite WASM Provider
 export {
 	DrizzleSqliteProvider,
