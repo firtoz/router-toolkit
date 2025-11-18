@@ -17,7 +17,6 @@ npm install @firtoz/drizzle-sqlite-wasm @firtoz/drizzle-utils drizzle-orm @tanst
 - ⚡ **Drizzle ORM** - Full type-safe query builder
 - 🎯 **Type-safe** - Full TypeScript support with automatic type inference
 - 🔍 **Query optimization** - Leverage SQLite indexes for fast queries
-- 📊 **Performance monitoring** - Built-in performance tracking
 - ⚛️ **React hooks** - Provider and hooks for easy integration
 - 🔄 **Migrations** - Automatic schema migrations with Drizzle snapshots
 - 🔌 **Bundler agnostic** - Works with Vite, Webpack, Parcel, and more
@@ -380,41 +379,6 @@ await customSqliteMigrate({
 - `migrations: Record<string, string>` - SQL migration strings
 - `debug?: boolean` - Enable debug logging
 
-### Performance Utilities
-
-Built-in performance monitoring:
-
-```typescript
-import {
-  getPerformanceMetrics,
-  getPerformanceMarks,
-  logPerformanceMetrics,
-  exportPerformanceData,
-  clearPerformanceData,
-  createPerformanceObserver,
-} from "@firtoz/drizzle-sqlite-wasm";
-
-// Get metrics
-const metrics = getPerformanceMetrics();
-console.log("Query time:", metrics.avgQueryTime);
-
-// Log all metrics
-logPerformanceMetrics();
-
-// Export for analysis
-const data = exportPerformanceData();
-
-// Clear history
-clearPerformanceData();
-
-// Custom observer
-const observer = createPerformanceObserver((entries) => {
-  for (const entry of entries) {
-    console.log(`${entry.name}: ${entry.duration}ms`);
-  }
-});
-```
-
 ## Advanced Usage
 
 ### Multiple Databases
@@ -652,7 +616,6 @@ useEffect(() => {
 
 - Enable debug mode to see timing: `useDrizzleSqliteDb(Worker, dbName, schema, migrations, true)`
 - Check Performance tab in DevTools
-- Use `logPerformanceMetrics()` to see query performance
 - Add indexes to frequently queried columns
 
 ### Migration Errors

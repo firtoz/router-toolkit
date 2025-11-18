@@ -28,15 +28,6 @@ export { useDrizzleSqlite } from "./context/useDrizzleSqlite";
 export type { UseDrizzleSqliteReturn } from "./context/useDrizzleSqlite";
 
 export {
-	getPerformanceMetrics,
-	getPerformanceMarks,
-	logPerformanceMetrics,
-	exportPerformanceData,
-	clearPerformanceData,
-	createPerformanceObserver,
-} from "./utils/performance";
-export type { PerformanceMetrics } from "./utils/performance";
-export {
 	initializeSqliteWorker,
 	getSqliteWorkerManager,
 	isSqliteWorkerInitialized,
