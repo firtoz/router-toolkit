@@ -1,45 +1,35 @@
-import { useContext, useCallback } from "react";
+import { useContext } from "react";
 import type { DrizzleSqliteContextValue } from "./DrizzleSqliteProvider";
 import {
 	DrizzleSqliteContext,
-	useCollection as useCollectionImpl,
+	useSqliteCollection,
 } from "./DrizzleSqliteProvider";
 import type { ValidTableNames } from "../collections/sqlite-collection";
 
-export interface UseDrizzleContextReturn<
-	TSchema extends Record<string, unknown>,
-> {
+export type UseDrizzleSqliteReturn<TSchema extends Record<string, unknown>> = {
 	drizzle: DrizzleSqliteContextValue<TSchema>["drizzle"];
 	useCollection: <TTableName extends string & ValidTableNames<TSchema>>(
 		tableName: TTableName,
-	) => ReturnType<typeof useCollectionImpl<TSchema, TTableName>>;
-}
+	) => ReturnType<typeof useSqliteCollection<TSchema, TTableName>>;
+};
 
 export function useDrizzleSqlite<
 	TSchema extends Record<string, unknown>,
->(): UseDrizzleContextReturn<TSchema> {
-	const context = useContext(DrizzleSqliteContext);
+>(): UseDrizzleSqliteReturn<TSchema> {
+	const context = useContext(
+		DrizzleSqliteContext,
+	) as DrizzleSqliteContextValue<TSchema> | null;
 
 	if (!context) {
 		throw new Error(
-			"useDrizzleContext must be used within a DrizzleSqliteProvider",
+			"useDrizzleSqlite must be used within a DrizzleSqliteProvider",
 		);
 	}
 
-	const typedContext = context as DrizzleSqliteContextValue<TSchema>;
-
-	// Create a wrapper function that uses the useCollection hook
-	const useCollection = useCallback(
-		<TTableName extends string & ValidTableNames<TSchema>>(
-			tableName: TTableName,
-		) => {
-			return useCollectionImpl(typedContext, tableName);
-		},
-		[typedContext],
-	);
-
 	return {
-		drizzle: typedContext.drizzle,
-		useCollection,
+		drizzle: context.drizzle,
+		useCollection: <TTableName extends string & ValidTableNames<TSchema>>(
+			tableName: TTableName,
+		) => useSqliteCollection(context, tableName),
 	};
 }

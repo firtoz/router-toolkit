@@ -2,7 +2,7 @@ import type { RoutePath } from "@firtoz/router-toolkit";
 import { useEffect } from "react";
 import {
 	DrizzleSqliteProvider,
-	useDrizzleContext,
+	useDrizzleSqlite,
 } from "@firtoz/drizzle-sqlite-wasm";
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 import * as schema from "test-schema/schema";
@@ -14,7 +14,7 @@ import { TodoListContainer } from "~/components/shared/TodoListContainer";
 export const loader = todoLoader;
 
 const TodoList = () => {
-	const { useCollection } = useDrizzleContext<typeof schema>();
+	const { useCollection } = useDrizzleSqlite<typeof schema>();
 
 	const todoCollection = useCollection("todoTable");
 
@@ -53,4 +53,5 @@ export default function SqliteTest() {
 	);
 }
 
-export const route: RoutePath<"/sqlite/sqlite-test"> = "/sqlite/sqlite-test";
+export const route: RoutePath<"/collections/sqlite-test"> =
+	"/collections/sqlite-test";

@@ -1,5 +1,6 @@
 import type { Table } from "drizzle-orm";
 import type { BuildSchema } from "drizzle-valibot";
+import type { Collection, UtilsRecord } from "@tanstack/db";
 
 /**
  * Utility type for branded IDs
@@ -48,4 +49,30 @@ export type InsertSchema<TTable extends Table> = BuildSchema<
 	"insert",
 	TTable["_"]["columns"],
 	undefined
+>;
+
+/**
+ * Helper type to get the table from schema by name
+ */
+export type GetTableFromSchema<
+	TSchema extends Record<string, unknown>,
+	TTableName extends keyof TSchema,
+> = TSchema[TTableName] extends Table ? TSchema[TTableName] : never;
+
+/**
+ * Helper type to infer the collection type from table
+ * This provides proper typing for Collection insert/update operations
+ */
+export type InferCollectionFromTable<TTable extends Table> = Collection<
+	TTable["$inferSelect"],
+	IdOf<TTable>,
+	UtilsRecord,
+	SelectSchema<TTable>,
+	Omit<
+		TTable["$inferInsert"],
+		"id"
+		// "createdAt" | "updatedAt" | "deletedAt" | "id"
+	> & {
+		id?: IdOf<TTable>;
+	}
 >;

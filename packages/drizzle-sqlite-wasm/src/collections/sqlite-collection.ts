@@ -40,7 +40,6 @@ import { createInsertSchema } from "drizzle-valibot";
 import * as v from "valibot";
 import type {
 	SelectSchema,
-	InsertSchema,
 	TableWithRequiredFields,
 } from "@firtoz/drizzle-utils";
 
@@ -192,7 +191,8 @@ export function sqliteCollectionOptions<
 	type CollectionType = CollectionConfig<
 		InferSchemaOutput<SelectSchema<TTable>>,
 		string,
-		InsertSchema<TTable>
+		// biome-ignore lint/suspicious/noExplicitAny: Schema type parameter needs to be flexible
+		any
 	>;
 
 	const tableName = config.tableName as string &

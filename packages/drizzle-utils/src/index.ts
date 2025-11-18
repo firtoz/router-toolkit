@@ -23,6 +23,8 @@ export type {
 	IdOf,
 	SelectSchema,
 	InsertSchema,
+	GetTableFromSchema,
+	InferCollectionFromTable,
 } from "./collection-utils";
 
 export { makeId } from "./collection-utils";

@@ -2,10 +2,10 @@
 
 import type { GetInfo, GetAnnotations } from "react-router/internal";
 
-type Module = typeof import("../sqlite-test.js")
+type Module = typeof import("../indexeddb-test.js")
 
 type Info = GetInfo<{
-  file: "routes/sqlite/sqlite-test.tsx",
+  file: "routes/collections/indexeddb-test.tsx",
   module: Module
 }>
 
@@ -13,8 +13,8 @@ type Matches = [{
   id: "root";
   module: typeof import("../../../root.js");
 }, {
-  id: "routes/sqlite/sqlite-test";
-  module: typeof import("../sqlite-test.js");
+  id: "routes/collections/indexeddb-test";
+  module: typeof import("../indexeddb-test.js");
 }];
 
 type Annotations = GetAnnotations<Info & { module: Module, matches: Matches }, false>;

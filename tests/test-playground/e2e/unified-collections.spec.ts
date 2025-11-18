@@ -17,7 +17,7 @@ import { expect, test, type Page } from "@playwright/test";
 const COLLECTION_CONFIGS = [
 	{
 		name: "SQLite WASM",
-		url: "/sqlite/sqlite-test",
+		url: "/collections/sqlite-test",
 		dbName: "sqlite-unified",
 		clearDb: async (page: Page) => {
 			await clearOPFS(page);
@@ -25,7 +25,7 @@ const COLLECTION_CONFIGS = [
 	},
 	{
 		name: "IndexedDB",
-		url: "/sqlite/indexeddb-test",
+		url: "/collections/indexeddb-test",
 		dbName: "indexeddb-unified",
 		clearDb: async (page: Page) => {
 			await page.evaluate(() => {

@@ -55,10 +55,12 @@
 		"access": "public"
 	},
 	"peerDependencies": {
+		"@tanstack/db": "catalog:",
 		"drizzle-orm": "catalog:",
 		"drizzle-valibot": "^0.4.2"
 	},
 	"devDependencies": {
+		"@tanstack/db": "catalog:",
 		"drizzle-orm": "catalog:",
 		"drizzle-valibot": "^0.4.2"
 	}

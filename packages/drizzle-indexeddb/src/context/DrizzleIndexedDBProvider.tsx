@@ -20,29 +20,14 @@ import {
 	indexedDBCollectionOptions,
 	type IndexedDBCollectionConfig,
 } from "@firtoz/drizzle-indexeddb";
-import type { IdOf, InsertSchema, SelectSchema } from "@firtoz/drizzle-utils";
+import type {
+	IdOf,
+	InsertSchema,
+	SelectSchema,
+	GetTableFromSchema,
+	InferCollectionFromTable,
+} from "@firtoz/drizzle-utils";
 import { migrateIndexedDBWithFunctions } from "../function-migrator";
-
-// Helper type to get the table from schema by name
-type GetTableFromSchema<
-	TSchema extends Record<string, unknown>,
-	TTableName extends keyof TSchema,
-> = TSchema[TTableName] extends Table ? TSchema[TTableName] : never;
-
-// Helper type to infer the collection type from table
-type InferCollectionFromTable<TTable extends Table> = Collection<
-	TTable["$inferSelect"],
-	IdOf<TTable>,
-	UtilsRecord,
-	SelectSchema<TTable>,
-	Omit<
-		TTable["$inferInsert"],
-		"id"
-		// "createdAt" | "updatedAt" | "deletedAt" | "id"
-	> & {
-		id?: IdOf<TTable>;
-	}
->;
 
 interface CollectionCacheEntry {
 	// biome-ignore lint/suspicious/noExplicitAny: Cache needs to store collections of various types

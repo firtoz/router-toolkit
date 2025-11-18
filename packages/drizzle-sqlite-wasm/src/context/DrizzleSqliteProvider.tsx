@@ -6,7 +6,6 @@ import {
 	type Collection,
 	type InferSchemaOutput,
 } from "@tanstack/db";
-import type { Table } from "drizzle-orm";
 import {
 	type AnyDrizzleDatabase,
 	type ValidTableNames,
@@ -15,22 +14,11 @@ import {
 } from "../collections/sqlite-collection";
 import { useDrizzle } from "../hooks/useDrizzle";
 import type { DurableSqliteMigrationConfig } from "../migration/migrator";
-import type { IdOf, InsertSchema } from "@firtoz/drizzle-utils";
-
-// Helper type to get the table from schema by name
-type GetTableFromSchema<
-	TSchema extends Record<string, unknown>,
-	TTableName extends keyof TSchema,
-> = TSchema[TTableName] extends Table ? TSchema[TTableName] : never;
-
-// Helper type to infer the collection type from table
-type InferCollectionFromTable<TTable extends Table> = Collection<
-	TTable["$inferSelect"],
-	IdOf<TTable>,
-	any,
-	any,
-	InsertSchema<TTable>
->;
+import type {
+	IdOf,
+	GetTableFromSchema,
+	InferCollectionFromTable,
+} from "@firtoz/drizzle-utils";
 
 interface CollectionCacheEntry {
 	// biome-ignore lint/suspicious/noExplicitAny: Cache needs to store collections of various types
@@ -38,23 +26,29 @@ interface CollectionCacheEntry {
 	refCount: number;
 }
 
+type SqliteCollection<
+	TSchema extends Record<string, unknown>,
+	TTableName extends string & ValidTableNames<TSchema>,
+> = Collection<
+	InferSchemaOutput<GetTableFromSchema<TSchema, TTableName>["$inferSelect"]>,
+	IdOf<GetTableFromSchema<TSchema, TTableName>>,
+	// biome-ignore lint/suspicious/noExplicitAny: We need to use any here to match the Collection type
+	any,
+	// biome-ignore lint/suspicious/noExplicitAny: We need to use any here to match the Collection type
+	any,
+	Omit<GetTableFromSchema<TSchema, TTableName>["$inferInsert"], "id"> & {
+		id?: IdOf<GetTableFromSchema<TSchema, TTableName>>;
+	}
+>;
+
 export type DrizzleSqliteContextValue<TSchema extends Record<string, unknown>> =
 	{
 		drizzle: SqliteRemoteDatabase<TSchema>;
-		getCollection: (
-			tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
-		) => Collection<
-			InferSchemaOutput<
-				GetTableFromSchema<TSchema, typeof tableName>["$inferSelect"]
-			>,
-			string
-		>;
-		incrementRefCount: (
-			tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
-		) => void;
-		decrementRefCount: (
-			tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
-		) => void;
+		getCollection: <TTableName extends string & ValidTableNames<TSchema>>(
+			tableName: TTableName,
+		) => SqliteCollection<TSchema, TTableName>;
+		incrementRefCount: (tableName: string) => void;
+		decrementRefCount: (tableName: string) => void;
 	};
 
 export const DrizzleSqliteContext =
@@ -92,12 +86,10 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 		[],
 	);
 
-	const getCollection = useCallback<
-		DrizzleSqliteContextValue<TSchema>["getCollection"]
-	>(
-		(
-			tableName: string & ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
-		) => {
+	const getCollection = useCallback(
+		<TTableName extends string & ValidTableNames<TSchema>>(
+			tableName: TTableName,
+		): SqliteCollection<TSchema, TTableName> => {
 			const cacheKey = tableName;
 
 			// Check if collection already exists in cache
@@ -106,7 +98,8 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 				const collection = createCollection(
 					sqliteCollectionOptions({
 						drizzle,
-						tableName,
+						tableName: tableName as string &
+							ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
 						readyPromise,
 						// syncMode: "on-demand",
 					}),
@@ -118,7 +111,8 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 			}
 
 			// biome-ignore lint/style/noNonNullAssertion: We just ensured the collection exists
-			return collections.get(cacheKey)!.collection;
+			return collections.get(cacheKey)!
+				.collection as unknown as SqliteCollection<TSchema, TTableName>;
 		},
 		[drizzle, collections, readyPromise],
 	);
@@ -168,7 +162,7 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 }
 
 // Hook that components use to get a collection with automatic ref counting
-export function useCollection<
+export function useSqliteCollection<
 	TSchema extends Record<string, unknown>,
 	TTableName extends string & ValidTableNames<TSchema>,
 >(
@@ -176,18 +170,15 @@ export function useCollection<
 	tableName: TTableName,
 ): InferCollectionFromTable<GetTableFromSchema<TSchema, TTableName>> {
 	const { collection, unsubscribe } = useMemo(() => {
-		const tableNameTyped = tableName as string &
-			ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>;
-
 		// Get the collection and increment ref count
-		const col = context.getCollection(tableNameTyped);
-		context.incrementRefCount(tableNameTyped);
+		const col = context.getCollection(tableName);
+		context.incrementRefCount(tableName);
 
 		// Return collection and unsubscribe function
 		return {
 			collection: col,
 			unsubscribe: () => {
-				context.decrementRefCount(tableNameTyped);
+				context.decrementRefCount(tableName);
 			},
 		};
 	}, [context, tableName]);

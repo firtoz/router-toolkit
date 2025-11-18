@@ -17,18 +17,13 @@ type Pages = {
   "/api/clear-opfs": {
     params: {};
   };
-  "/sqlite/sqlite-test": {
+  "/collections/sqlite-test": {
     params: {};
   };
-  "/sqlite/sqlite-test/:dbName": {
-    params: {
-      "dbName": string;
-    };
-  };
-  "/sqlite/indexeddb-test": {
+  "/collections/indexeddb-test": {
     params: {};
   };
-  "/sqlite/indexeddb-migration-test": {
+  "/collections/indexeddb-migration-test": {
     params: {};
   };
   "/router-toolkit/loader-test": {
@@ -54,7 +49,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/api/clear-opfs" | "/sqlite/sqlite-test" | "/sqlite/sqlite-test/:dbName" | "/sqlite/indexeddb-test" | "/sqlite/indexeddb-migration-test" | "/router-toolkit/loader-test" | "/router-toolkit/action-test" | "/router-toolkit/form-action-test" | "/router-toolkit/submitter-with-loader" | "/router-toolkit/fetcher-data-refresh" | "/router-toolkit/fetcher-invalidation";
+    page: "/" | "/api/clear-opfs" | "/collections/sqlite-test" | "/collections/indexeddb-test" | "/collections/indexeddb-migration-test" | "/router-toolkit/loader-test" | "/router-toolkit/action-test" | "/router-toolkit/form-action-test" | "/router-toolkit/submitter-with-loader" | "/router-toolkit/fetcher-data-refresh" | "/router-toolkit/fetcher-invalidation";
   };
   "routes/home.tsx": {
     id: "routes/home";
@@ -64,21 +59,17 @@ type RouteFiles = {
     id: "routes/api/clear-opfs";
     page: "/api/clear-opfs";
   };
-  "routes/sqlite/sqlite-test.tsx": {
-    id: "routes/sqlite/sqlite-test";
-    page: "/sqlite/sqlite-test";
+  "routes/collections/sqlite-test.tsx": {
+    id: "routes/collections/sqlite-test";
+    page: "/collections/sqlite-test";
   };
-  "routes/sqlite/sqlite-test-dynamic.tsx": {
-    id: "routes/sqlite/sqlite-test-dynamic";
-    page: "/sqlite/sqlite-test/:dbName";
+  "routes/collections/indexeddb-test.tsx": {
+    id: "routes/collections/indexeddb-test";
+    page: "/collections/indexeddb-test";
   };
-  "routes/sqlite/indexeddb-test.tsx": {
-    id: "routes/sqlite/indexeddb-test";
-    page: "/sqlite/indexeddb-test";
-  };
-  "routes/sqlite/indexeddb-migration-test.tsx": {
-    id: "routes/sqlite/indexeddb-migration-test";
-    page: "/sqlite/indexeddb-migration-test";
+  "routes/collections/indexeddb-migration-test.tsx": {
+    id: "routes/collections/indexeddb-migration-test";
+    page: "/collections/indexeddb-migration-test";
   };
   "routes/router-toolkit/loader-test.tsx": {
     id: "routes/router-toolkit/loader-test";
@@ -110,10 +101,9 @@ type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "routes/home": typeof import("./app/routes/home.tsx");
   "routes/api/clear-opfs": typeof import("./app/routes/api/clear-opfs.tsx");
-  "routes/sqlite/sqlite-test": typeof import("./app/routes/sqlite/sqlite-test.tsx");
-  "routes/sqlite/sqlite-test-dynamic": typeof import("./app/routes/sqlite/sqlite-test-dynamic.tsx");
-  "routes/sqlite/indexeddb-test": typeof import("./app/routes/sqlite/indexeddb-test.tsx");
-  "routes/sqlite/indexeddb-migration-test": typeof import("./app/routes/sqlite/indexeddb-migration-test.tsx");
+  "routes/collections/sqlite-test": typeof import("./app/routes/collections/sqlite-test.tsx");
+  "routes/collections/indexeddb-test": typeof import("./app/routes/collections/indexeddb-test.tsx");
+  "routes/collections/indexeddb-migration-test": typeof import("./app/routes/collections/indexeddb-migration-test.tsx");
   "routes/router-toolkit/loader-test": typeof import("./app/routes/router-toolkit/loader-test.tsx");
   "routes/router-toolkit/action-test": typeof import("./app/routes/router-toolkit/action-test.tsx");
   "routes/router-toolkit/form-action-test": typeof import("./app/routes/router-toolkit/form-action-test.tsx");

@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("@firtoz/drizzle-sqlite-wasm - Partial IndexedDB Migrations", () => {
+test.describe("@firtoz/drizzle-indexeddb - Partial IndexedDB Migrations", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/sqlite/indexeddb-migration-test");
+		await page.goto("/collections/indexeddb-migration-test");
 
 		// Wait for page to load
 		await page.waitForLoadState("networkidle");

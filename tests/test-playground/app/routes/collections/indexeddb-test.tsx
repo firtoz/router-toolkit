@@ -40,5 +40,5 @@ export default function IndexedDBTest() {
 	);
 }
 
-export const route: RoutePath<"/sqlite/indexeddb-test"> =
-	"/sqlite/indexeddb-test";
+export const route: RoutePath<"/collections/indexeddb-test"> =
+	"/collections/indexeddb-test";

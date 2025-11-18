@@ -16,7 +16,7 @@ import { getTableColumns, SQL, type Table } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-valibot";
 import * as v from "valibot";
 
-import type { IdOf, SelectSchema, InsertSchema } from "@firtoz/drizzle-utils";
+import type { IdOf, SelectSchema } from "@firtoz/drizzle-utils";
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 type AnyId = IdOf<any>;
@@ -488,7 +488,8 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 	type CollectionType = CollectionConfig<
 		InferSchemaOutput<SelectSchema<TTable>>,
 		string,
-		InsertSchema<TTable>
+		// biome-ignore lint/suspicious/noExplicitAny: Schema type parameter needs to be flexible
+		any
 	>;
 
 	const table = config.table;
@@ -875,7 +876,7 @@ export function indexedDBCollectionOptions<const TTable extends Table>(
 	);
 
 	const result = {
-		schema: insertSchemaWithDefaults as InsertSchema<TTable>,
+		schema: insertSchemaWithDefaults,
 		getKey: (item: InferSchemaOutput<SelectSchema<TTable>>) => {
 			const id = (item as { id: string }).id;
 			return id;

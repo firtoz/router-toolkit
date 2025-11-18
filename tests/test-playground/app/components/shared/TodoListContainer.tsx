@@ -212,7 +212,11 @@ export const TodoListContainer = ({
 
 				{todos && todos.length > 0 && (
 					<>
-						<button onClick={handleSelectAll} type="button" data-testid="select-all">
+						<button
+							onClick={handleSelectAll}
+							type="button"
+							data-testid="select-all"
+						>
 							{selectedIds.size === todos.length
 								? "Deselect All"
 								: "Select All"}

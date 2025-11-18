@@ -21,11 +21,11 @@ export { useDrizzle } from "./hooks/useDrizzle";
 export {
 	DrizzleSqliteProvider,
 	DrizzleSqliteContext,
-	useCollection,
+	useSqliteCollection,
 } from "./context/DrizzleSqliteProvider";
 export type { DrizzleSqliteContextValue } from "./context/DrizzleSqliteProvider";
-export { useDrizzleSqlite as useDrizzleContext } from "./context/useDrizzleSqlite";
-export type { UseDrizzleContextReturn } from "./context/useDrizzleSqlite";
+export { useDrizzleSqlite } from "./context/useDrizzleSqlite";
+export type { UseDrizzleSqliteReturn } from "./context/useDrizzleSqlite";
 
 export {
 	getPerformanceMetrics,

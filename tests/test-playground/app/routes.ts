@@ -8,13 +8,12 @@ import {
 export default [
 	index("routes/home.tsx"),
 	route("api/clear-opfs", "routes/api/clear-opfs.tsx"),
-	...prefix("sqlite", [
-		route("sqlite-test", "routes/sqlite/sqlite-test.tsx"),
-		route("sqlite-test/:dbName", "routes/sqlite/sqlite-test-dynamic.tsx"),
-		route("indexeddb-test", "routes/sqlite/indexeddb-test.tsx"),
+	...prefix("collections", [
+		route("sqlite-test", "routes/collections/sqlite-test.tsx"),
+		route("indexeddb-test", "routes/collections/indexeddb-test.tsx"),
 		route(
 			"indexeddb-migration-test",
-			"routes/sqlite/indexeddb-migration-test.tsx",
+			"routes/collections/indexeddb-migration-test.tsx",
 		),
 	]),
 	...prefix("router-toolkit", [

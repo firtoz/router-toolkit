@@ -20,7 +20,7 @@ export function Welcome() {
 			<nav>
 				<h2>@firtoz/drizzle-sqlite-wasm Test Routes</h2>
 				<ul>
-					{sqliteRoutes.map(({ path, text, description }) => (
+					{collectionRoutes.map(({ path, text, description }) => (
 						<li key={path}>
 							<a href={path}>
 								<div>{text}</div>
@@ -70,21 +70,21 @@ const routerToolkitRoutes = [
 	},
 ];
 
-const sqliteRoutes = [
+const collectionRoutes = [
 	{
-		path: href("/sqlite/sqlite-test"),
+		path: href("/collections/sqlite-test"),
 		text: "DrizzleSqliteProvider + useCollection",
 		description:
 			"SQLite WASM with Drizzle ORM: Real-time queries with live updates using useLiveQuery",
 	},
 	{
-		path: href("/sqlite/indexeddb-test"),
+		path: href("/collections/indexeddb-test"),
 		text: "DrizzleIndexedDBProvider + useCollection",
 		description:
 			"IndexedDB with Drizzle Collections: Real-time queries with live updates using useLiveQuery",
 	},
 	{
-		path: href("/sqlite/indexeddb-migration-test"),
+		path: href("/collections/indexeddb-migration-test"),
 		text: "IndexedDB Migration Test",
 		description:
 			"Test generated IndexedDB migrations from Drizzle schema snapshots",
