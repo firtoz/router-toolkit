@@ -691,7 +691,7 @@ import {
 ## Examples
 
 Check out the test playground for complete examples:
-- `tests/test-playground/app/routes/sqlite/` - React components using SQLite
+- `tests/test-playground/app/routes/collections/` - React components using SQLite and IndexedDB
 - `tests/test-playground/e2e/` - E2E tests
 
 ## Dependencies

@@ -23,9 +23,9 @@
 			"require": "./src/migration/migrator.ts"
 		},
 		"./drizzleCollectionOptions": {
-			"types": "./src/collections/drizzle-collection.ts",
-			"import": "./src/collections/drizzle-collection.ts",
-			"require": "./src/collections/drizzle-collection.ts"
+			"types": "./src/collections/sqlite-collection.ts",
+			"import": "./src/collections/sqlite-collection.ts",
+			"require": "./src/collections/sqlite-collection.ts"
 		},
 		"./*": {
 			"types": "./src/*.ts",
