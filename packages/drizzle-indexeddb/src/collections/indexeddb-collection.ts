@@ -390,31 +390,6 @@ function deleteFromStoreInTransaction(
 }
 
 /**
- * Gets a single item from an IndexedDB object store by ID
- */
-function getFromStore(
-	db: IDBDatabase,
-	storeName: string,
-	id: AnyId,
-): Promise<IndexedDBSyncItem | undefined> {
-	return new Promise((resolve, reject) => {
-		const transaction = db.transaction(storeName, "readonly");
-
-		const store = transaction.objectStore(storeName);
-
-		const request = store.get(id);
-
-		request.onsuccess = () => {
-			resolve(request.result as IndexedDBSyncItem | undefined);
-		};
-
-		request.onerror = () => {
-			reject(request.error);
-		};
-	});
-}
-
-/**
  * Gets a single item from an IndexedDB object store by ID using an existing transaction
  */
 function getFromStoreInTransaction(

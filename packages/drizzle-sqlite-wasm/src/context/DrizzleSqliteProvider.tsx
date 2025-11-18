@@ -15,7 +15,7 @@ import {
 } from "../collections/drizzle-collection";
 import { useDrizzle } from "../hooks/useDrizzle";
 import type { DurableSqliteMigrationConfig } from "../migration/migrator";
-import type { IdOf } from "@firtoz/drizzle-utils";
+import type { IdOf, InsertSchema } from "@firtoz/drizzle-utils";
 
 // Helper type to get the table from schema by name
 type GetTableFromSchema<
@@ -23,10 +23,13 @@ type GetTableFromSchema<
 	TTableName extends keyof TSchema,
 > = TSchema[TTableName] extends Table ? TSchema[TTableName] : never;
 
-// Helper type to infer the collection type from table - simplified to just the data type
+// Helper type to infer the collection type from table
 type InferCollectionFromTable<TTable extends Table> = Collection<
 	TTable["$inferSelect"],
-	IdOf<TTable>
+	IdOf<TTable>,
+	any,
+	any,
+	InsertSchema<TTable>
 >;
 
 interface CollectionCacheEntry {

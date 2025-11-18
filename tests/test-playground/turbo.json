@@ -5,6 +5,16 @@
 		"build": {
 			"inputs": ["app/**", "src/**", "public/**", "*.config.*", "package.json"],
 			"outputs": ["build/**"]
+		},
+		"test": {
+			"dependsOn": [
+				"@firtoz/drizzle-sqlite-wasm#typecheck",
+				"@firtoz/drizzle-indexeddb#typecheck",
+				"@firtoz/maybe-error#typecheck",
+				"@firtoz/router-toolkit#typecheck",
+				"@firtoz/worker-helper#typecheck"
+			],
+			"inputs": ["app/**", "src/**", "public/**", "*.config.*", "package.json"]
 		}
 	}
 }

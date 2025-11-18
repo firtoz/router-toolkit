@@ -29,15 +29,18 @@ import {
 	asc,
 	desc,
 	type SQL,
+	getTableColumns,
 } from "drizzle-orm";
 import type {
 	SQLiteUpdateSetSource,
 	BaseSQLiteDatabase,
 	SQLiteInsertValue,
 } from "drizzle-orm/sqlite-core";
-import { createSelectSchema } from "drizzle-valibot";
+import { createInsertSchema } from "drizzle-valibot";
+import * as v from "valibot";
 import type {
 	SelectSchema,
+	InsertSchema,
 	TableWithRequiredFields,
 } from "@firtoz/drizzle-utils";
 
@@ -189,7 +192,7 @@ export function drizzleCollectionOptions<
 	type CollectionType = CollectionConfig<
 		InferSchemaOutput<SelectSchema<TTable>>,
 		string,
-		SelectSchema<TTable>
+		InsertSchema<TTable>
 	>;
 
 	const tableName = config.tableName as string &
@@ -200,6 +203,22 @@ export function drizzleCollectionOptions<
 	let insertListener: CollectionType["onInsert"] | null = null;
 	let updateListener: CollectionType["onUpdate"] | null = null;
 	let deleteListener: CollectionType["onDelete"] | null = null;
+
+	// Transaction queue to serialize SQLite transactions (SQLite only supports one transaction at a time)
+	// The queue ensures transactions run sequentially and continues even if one fails
+	let transactionQueue = Promise.resolve();
+	const queueTransaction = <T>(fn: () => Promise<T>): Promise<T> => {
+		// Chain this transaction after the previous one (whether it succeeded or failed)
+		const result = transactionQueue.then(fn, fn);
+		// Update the queue to continue after this transaction completes (success or failure)
+		// This ensures the queue doesn't get stuck if a transaction fails
+		transactionQueue = result.then(
+			() => {}, // Success handler - return undefined to reset queue
+			() => {}, // Error handler - return undefined to reset queue (queue continues)
+		);
+		// Return the actual result so errors propagate to the caller
+		return result;
+	};
 
 	const sync: SyncConfig<
 		InferSchemaOutput<SelectSchema<TTable>>,
@@ -237,21 +256,30 @@ export function drizzleCollectionOptions<
 		}
 
 		insertListener = async (params) => {
-			try {
+			// Store results to write after transaction succeeds
+			const results: Array<InferSchemaOutput<SelectSchema<TTable>>> = [];
+
+			// Queue the transaction to serialize SQLite operations
+			await queueTransaction(async () => {
 				await config.drizzle.transaction(async (tx) => {
-					begin();
 					for (const item of params.transaction.mutations) {
+						// TanStack DB applies schema transform (including ID default) before calling this listener
+						// So item.modified already has the ID from insertSchemaWithIdDefault
+						const itemToInsert = item.modified;
+
 						if (config.debug) {
 							console.log(
 								`[${new Date().toISOString()}] insertListener inserting`,
-								item,
+								itemToInsert,
 							);
 						}
 
 						const result: Array<InferSchemaOutput<SelectSchema<TTable>>> =
 							(await tx
 								.insert(table)
-								.values(item.modified as SQLiteInsertValue<typeof table>)
+								.values(
+									itemToInsert as unknown as SQLiteInsertValue<typeof table>,
+								)
 								.returning()) as Array<InferSchemaOutput<SelectSchema<TTable>>>;
 
 						if (config.debug) {
@@ -262,67 +290,80 @@ export function drizzleCollectionOptions<
 						}
 
 						if (result.length > 0) {
-							// Write the actual result from the database (with defaults applied)
-							write({
-								type: "insert",
-								value: result[0] as unknown as InferSchemaOutput<
-									SelectSchema<TTable>
-								>,
-							});
+							results.push(result[0]);
 						}
 					}
-					commit();
 				});
-			} catch (error) {
-				// No need for rollback since we never wrote optimistically
-				throw error;
+			});
+
+			// Only update reactive store after transaction succeeds
+			begin();
+			for (const result of results) {
+				write({
+					type: "insert",
+					value: result as unknown as InferSchemaOutput<SelectSchema<TTable>>,
+				});
 			}
+			commit();
 		};
 
 		updateListener = async (params) => {
+			// Optimistically update the reactive store before database operation
+			begin();
+			for (const item of params.transaction.mutations) {
+				write({
+					type: "update",
+					value: item.modified,
+				});
+			}
+			commit();
+
 			try {
-				await config.drizzle.transaction(async (tx) => {
-					begin();
-					for (const item of params.transaction.mutations) {
-						if (config.debug) {
-							console.log(
-								`[${new Date().toISOString()}] updateListener updating`,
-								item,
-							);
-						}
+				// Queue the transaction to serialize SQLite operations
+				await queueTransaction(async () => {
+					await config.drizzle.transaction(async (tx) => {
+						for (const item of params.transaction.mutations) {
+							if (config.debug) {
+								console.log(
+									`[${new Date().toISOString()}] updateListener updating`,
+									item,
+								);
+							}
 
-						const updateTime = new Date();
-						const result: Array<InferSchemaOutput<SelectSchema<TTable>>> =
-							(await tx
-								.update(table)
-								.set({
-									...item.changes,
-									updatedAt: updateTime,
-								} as SQLiteUpdateSetSource<typeof table>)
-								.where(eq(table.id, item.key))
-								.returning()) as Array<InferSchemaOutput<SelectSchema<TTable>>>;
+							const updateTime = new Date();
+							const result: Array<InferSchemaOutput<SelectSchema<TTable>>> =
+								(await tx
+									.update(table)
+									.set({
+										...item.changes,
+										updatedAt: updateTime,
+									} as SQLiteUpdateSetSource<typeof table>)
+									.where(eq(table.id, item.key))
+									.returning()) as Array<
+									InferSchemaOutput<SelectSchema<TTable>>
+								>;
 
-						if (config.debug) {
-							console.log(
-								`[${new Date().toISOString()}] updateListener result`,
-								result,
-							);
+							if (config.debug) {
+								console.log(
+									`[${new Date().toISOString()}] updateListener result`,
+									result,
+								);
+							}
 						}
-
-						if (result.length > 0) {
-							// Write the actual result from the database
-							write({
-								type: "update",
-								value: result[0] as unknown as InferSchemaOutput<
-									SelectSchema<TTable>
-								>,
-							});
-						}
-					}
-					commit();
+					});
 				});
 			} catch (error) {
-				// No need for rollback since we never wrote optimistically
+				// Rollback optimistic updates on error
+				begin();
+				for (const item of params.transaction.mutations) {
+					const original = item.original;
+					write({
+						type: "update",
+						value: original,
+					});
+				}
+				commit();
+
 				throw error;
 			}
 		};
@@ -344,10 +385,13 @@ export function drizzleCollectionOptions<
 			commit();
 
 			try {
-				await config.drizzle.transaction(async (tx) => {
-					for (const item of params.transaction.mutations) {
-						await tx.delete(table).where(eq(table.id, item.key));
-					}
+				// Queue the transaction to serialize SQLite operations
+				await queueTransaction(async () => {
+					await config.drizzle.transaction(async (tx) => {
+						for (const item of params.transaction.mutations) {
+							await tx.delete(table).where(eq(table.id, item.key));
+						}
+					});
 				});
 			} catch (error) {
 				begin();
@@ -433,8 +477,28 @@ export function drizzleCollectionOptions<
 		} satisfies SyncConfigRes;
 	};
 
+	// Create insert schema and augment it to apply ID default
+	// (Other defaults like createdAt/updatedAt are handled by SQLite)
+	const insertSchema = createInsertSchema(table);
+	const columns = getTableColumns(table);
+	const idColumn = columns.id;
+
+	const insertSchemaWithIdDefault = v.pipe(
+		insertSchema,
+		v.transform((input) => {
+			const result = { ...input } as Record<string, unknown>;
+
+			// Apply ID default if missing
+			if (result.id === undefined && idColumn?.defaultFn) {
+				result.id = idColumn.defaultFn();
+			}
+
+			return result as typeof input;
+		}),
+	);
+
 	return {
-		schema: createSelectSchema(table),
+		schema: insertSchemaWithIdDefault,
 		getKey: (item: InferSchemaOutput<SelectSchema<TTable>>) => {
 			const id = (item as { id: string }).id;
 			return id;

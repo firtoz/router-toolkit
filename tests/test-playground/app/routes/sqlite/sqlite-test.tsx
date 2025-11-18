@@ -1,223 +1,56 @@
-import { fail, success, type RoutePath } from "@firtoz/router-toolkit";
-import { useCallback, useEffect, useState } from "react";
+import type { RoutePath } from "@firtoz/router-toolkit";
+import { useEffect } from "react";
 import {
 	DrizzleSqliteProvider,
 	useDrizzleContext,
-	makeId,
 } from "@firtoz/drizzle-sqlite-wasm";
 import SqliteWorker from "@firtoz/drizzle-sqlite-wasm/worker/sqlite.worker?worker";
 import * as schema from "test-schema/schema";
 import migrations from "test-schema/drizzle/migrations";
-import { useLiveQuery } from "@tanstack/react-db";
-import { formatDateWithMs } from "~/utils/date-format";
-import type { Route } from "./+types/sqlite-test";
-import { data, useLoaderData } from "react-router";
+import { todoLoader } from "~/utils/todo-loaders";
+import { ClientOnly } from "~/components/shared/ClientOnly";
+import { TodoListContainer } from "~/components/shared/TodoListContainer";
+import type { BaseTodoCollection } from "~/types/collection";
 
-type Todo = typeof schema.todoTable.$inferSelect;
-
-interface TodoItemProps {
-	todo: Todo;
-	onToggleComplete: (id: Todo["id"]) => void;
-	onDelete: (id: Todo["id"]) => void;
-}
-
-export const loader = async ({ request }: Route.LoaderArgs) => {
-	const headers = new Headers(request.headers);
-	const locale = headers.get("accept-language")?.split(",")[0];
-
-	if (!locale) {
-		return data(fail("No locale found"), { status: 400 });
-	}
-
-	return success({ locale });
-};
-
-const TodoItem = ({ todo, onToggleComplete, onDelete }: TodoItemProps) => {
-	const data = useLoaderData<typeof loader>();
-	let locale = "en-US";
-	if (data.success) {
-		locale = data.result.locale;
-	}
-	return (
-		<div data-testid={`todo-card-${todo.id}`}>
-			<div>
-				<div>
-					<div>
-						<div>
-							<h3 data-testid={`todo-title-${todo.id}`}>{todo.title}</h3>
-							<span data-testid={`todo-status-${todo.id}`}>
-								{todo.completed ? "✅ Completed" : "⏳ Pending"}
-							</span>
-						</div>
-
-						<div>
-							<div>
-								<span>ID:</span>
-								<code data-testid={`todo-id-${todo.id}`}>{todo.id}</code>
-							</div>
-							<div>
-								<span>
-									<span>Created:</span>{" "}
-									<span data-testid={`todo-created-${todo.id}`}>
-										{formatDateWithMs(todo.createdAt, locale)}
-									</span>
-								</span>
-								<span>
-									<span>Updated:</span>{" "}
-									<span data-testid={`todo-updated-${todo.id}`}>
-										{formatDateWithMs(todo.updatedAt, locale)}
-									</span>
-								</span>
-							</div>
-						</div>
-					</div>
-
-					<div>
-						<button
-							data-testid={`todo-toggle-${todo.id}`}
-							onClick={() => onToggleComplete(todo.id)}
-							type="button"
-						>
-							{todo.completed ? "↩️ Undo" : "✅ Complete"}
-						</button>
-						<button
-							data-testid={`todo-delete-${todo.id}`}
-							onClick={() => onDelete(todo.id)}
-							type="button"
-							title="Delete todo"
-						>
-							🗑️
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
-};
+export const loader = todoLoader;
 
 const TodoList = () => {
 	const { useCollection } = useDrizzleContext<typeof schema>();
 
-	const todoCollection = useCollection("todoTable");
+	const todoCollection = useCollection("todoTable") as BaseTodoCollection;
 
-	const { data: todos } = useLiveQuery((q) =>
-		q
-			.from({ todo: todoCollection })
-			.orderBy(({ todo }) => todo.createdAt, "asc"),
-	);
-
-	const [newTodo, setNewTodo] = useState("");
-
-	const handleAddTodo = useCallback(() => {
-		const trimmedTodo = newTodo.trim();
-		if (trimmedTodo) {
-			todoCollection.insert({
-				id: makeId(schema.todoTable, crypto.randomUUID()),
-				title: trimmedTodo,
-				completed: false,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-				deletedAt: null,
-				parentId: null,
-				userId: null,
-			});
-			setNewTodo("");
-		}
-	}, [newTodo, todoCollection]);
-
-	const handleToggleComplete = useCallback(
-		(id: Todo["id"]) => {
-			const tx = todoCollection.update(id, (draft) => {
-				draft.completed = !draft.completed;
-			});
-
-			console.log(`[${new Date().toISOString()}] tx`, tx);
-
-			tx.isPersisted.promise.then(
-				(isPersisted) => {
-					console.log(
-						`[${new Date().toISOString()}] tx isPersisted`,
-						isPersisted,
-					);
-				},
-				(error) => {
-					console.error(`[${new Date().toISOString()}] tx error`, error);
-				},
-			);
-		},
-		[todoCollection],
-	);
-
-	const handleDeleteTodo = useCallback(
-		(id: Todo["id"]) => {
-			todoCollection.delete(id);
-		},
-		[todoCollection],
-	);
+	// Expose collection to window for testing
+	useEffect(() => {
+		// biome-ignore lint/suspicious/noExplicitAny: Test helper
+		(window as any).__todoCollection = todoCollection;
+		return () => {
+			// biome-ignore lint/suspicious/noExplicitAny: Test helper
+			delete (window as any).__todoCollection;
+		};
+	}, [todoCollection]);
 
 	return (
-		<div>
-			<h1>Todos</h1>
-
-			{/* Input Section */}
-			<div>
-				<div>
-					<input
-						type="text"
-						value={newTodo}
-						onChange={(e) => setNewTodo(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" && newTodo.trim()) {
-								handleAddTodo();
-							}
-						}}
-						placeholder="What needs to be done?"
-					/>
-					<button
-						onClick={handleAddTodo}
-						disabled={!newTodo.trim()}
-						type="button"
-					>
-						+ Add
-					</button>
-				</div>
-			</div>
-
-			{/* Todos Grid */}
-			<div>
-				{todos?.map((todo) => (
-					<TodoItem
-						key={String(todo.id)}
-						todo={todo}
-						onToggleComplete={handleToggleComplete}
-						onDelete={handleDeleteTodo}
-					/>
-				))}
-			</div>
-		</div>
+		<TodoListContainer
+			collection={todoCollection}
+			title="Todos"
+			description="SQLite WASM with Drizzle collections"
+		/>
 	);
 };
 
 export default function SqliteTest() {
-	const [mounted, setMounted] = useState(false);
-
-	useEffect(() => {
-		setMounted(true);
-	}, []);
-
-	if (!mounted) {
-		return null;
-	}
-
 	return (
-		<DrizzleSqliteProvider
-			worker={SqliteWorker}
-			dbName="test.db"
-			schema={schema}
-			migrations={migrations}
-		>
-			<TodoList />
-		</DrizzleSqliteProvider>
+		<ClientOnly>
+			<DrizzleSqliteProvider
+				worker={SqliteWorker}
+				dbName="test.db"
+				schema={schema}
+				migrations={migrations}
+				debug={true}
+			>
+				<TodoList />
+			</DrizzleSqliteProvider>
+		</ClientOnly>
 	);
 }
 
