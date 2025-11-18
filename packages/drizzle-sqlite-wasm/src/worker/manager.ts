@@ -46,8 +46,6 @@ export class DbInstance implements ISqliteWorkerClient {
 		this.dbId = dbId;
 		this.isStarted = true;
 
-		console.log(`[PERF] Database started for ${this.dbName}`);
-
 		// Call all pending callbacks
 		for (const callback of this.startedCallbacks) {
 			callback();
@@ -112,11 +110,6 @@ export class SqliteWorkerManager extends WorkerClient<
 	private readonly readyPromise: Promise<void>;
 	private isReady = false;
 
-	private preparedResolve?: () => void;
-	private preparedReject?: (error: Error) => void;
-	private readonly preparedPromise: Promise<void>;
-	private isPrepared = false;
-
 	private readonly dbInstances = new Map<string, DbInstance>();
 	private readonly pendingStarts = new Map<
 		StartRequestId,
@@ -136,24 +129,16 @@ export class SqliteWorkerManager extends WorkerClient<
 			},
 			onValidationError: (error, rawMessage) => {
 				console.error(error, rawMessage);
-				// Reject promises if we get validation errors before being ready/prepared
+				// Reject promises if we get validation errors before being ready
 				if (!this.isReady && this.readyReject) {
 					this.readyReject(new Error(`Validation error: ${error.message}`));
-				}
-				if (!this.isPrepared && this.preparedReject) {
-					this.preparedReject(new Error(`Validation error: ${error.message}`));
 				}
 			},
 			onError: (event) => {
 				console.error(event);
-				// Reject promises if worker errors before being ready/prepared
+				// Reject promises if worker errors before being ready
 				if (!this.isReady && this.readyReject) {
 					this.readyReject(
-						new Error(`Worker error: ${event.message || "Unknown error"}`),
-					);
-				}
-				if (!this.isPrepared && this.preparedReject) {
-					this.preparedReject(
 						new Error(`Worker error: ${event.message || "Unknown error"}`),
 					);
 				}
@@ -164,13 +149,6 @@ export class SqliteWorkerManager extends WorkerClient<
 			this.readyResolve = resolve;
 			this.readyReject = reject;
 		});
-
-		this.preparedPromise = new Promise((resolve, reject) => {
-			this.preparedResolve = resolve;
-			this.preparedReject = reject;
-		});
-
-		console.log("[PERF] SQLite Worker Manager initialized");
 	}
 
 	/**
@@ -180,40 +158,15 @@ export class SqliteWorkerManager extends WorkerClient<
 		return this.readyPromise;
 	}
 
-	/**
-	 * Promise that resolves when the worker is prepared (diagnostics complete)
-	 */
-	public get prepared(): Promise<void> {
-		return this.preparedPromise;
-	}
-
 	private onMessage(message: SqliteWorkerServerMessage) {
 		const { type } = message;
 		switch (type) {
 			case SqliteWorkerServerMessageType.Ready:
 				{
-					console.log("[PERF] Worker ready");
 					this.isReady = true;
 					this.readyResolve?.();
 					if (this.debug) {
-						console.log("[SqliteWorkerManager] ready - sending prepare");
-					}
-
-					// First, request preparation (diagnostics)
-					this.send({
-						type: SqliteWorkerClientMessageType.Prepare,
-					});
-				}
-				break;
-			case SqliteWorkerServerMessageType.Prepared:
-				{
-					console.log("[PERF] Worker prepared");
-					this.isPrepared = true;
-					this.preparedResolve?.();
-					if (this.debug) {
-						console.log(
-							"[SqliteWorkerManager] prepared and ready for databases",
-						);
+						console.log("[SqliteWorkerManager] ready for databases");
 					}
 				}
 				break;
@@ -259,11 +212,6 @@ export class SqliteWorkerManager extends WorkerClient<
 		let instance = this.dbInstances.get(dbName);
 		if (instance) {
 			return instance;
-		}
-
-		// Wait for worker to be prepared before starting a database
-		if (!this.isPrepared) {
-			await this.preparedPromise;
 		}
 
 		// Check again after waiting (another call might have created it)

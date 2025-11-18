@@ -32,9 +32,6 @@ export function initializeSqliteWorker(
 	}
 
 	// Start initialization
-
-	console.log("[PERF] Starting global SQLite worker initialization");
-
 	initPromise = (async () => {
 		const worker = new WorkerConstructor();
 		const manager = new SqliteWorkerManager(worker, debug);
@@ -42,8 +39,6 @@ export function initializeSqliteWorker(
 
 		// Wait for the worker to actually send its Ready message
 		await manager.ready;
-
-		console.log("[PERF] Global SQLite worker manager ready");
 
 		return manager;
 	})();

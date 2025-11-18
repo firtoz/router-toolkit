@@ -67,22 +67,8 @@ export class SqliteWorkerClient
 		switch (type) {
 			case SqliteWorkerServerMessageType.Ready:
 				{
-					console.log(`[PERF] Worker ready for ${this.dbName}`);
 					if (this.debug) {
-						console.log("[SqliteWorkerClient] ready - sending prepare");
-					}
-
-					// First, request preparation (diagnostics)
-					this.send({
-						type: SqliteWorkerClientMessageType.Prepare,
-					});
-				}
-				break;
-			case SqliteWorkerServerMessageType.Prepared:
-				{
-					console.log(`[PERF] Worker prepared for ${this.dbName}`);
-					if (this.debug) {
-						console.log("[SqliteWorkerClient] prepared - starting database");
+						console.log("[SqliteWorkerClient] ready - starting database");
 					}
 
 					// Now start this specific database
@@ -100,7 +86,6 @@ export class SqliteWorkerClient
 					if (message.requestId === this.startRequestId) {
 						this.dbId = message.dbId;
 
-						console.log(`[PERF] Database started for ${this.dbName}`);
 						if (this.debug) {
 							console.log("[SqliteWorkerClient] started with dbId:", this.dbId);
 							console.log(

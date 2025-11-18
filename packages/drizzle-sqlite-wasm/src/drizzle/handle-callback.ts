@@ -11,7 +11,7 @@ export const handleRemoteCallback = async ({
 	sql,
 	params,
 	method,
-	debug = false,
+	debug: _debug = false,
 }: {
 	sqliteDb: Database;
 	sql: string;
@@ -20,12 +20,6 @@ export const handleRemoteCallback = async ({
 	method: "run" | "all" | "values" | "get";
 	debug?: boolean;
 }): Promise<MaybeError<{ rows: unknown[] }, string>> => {
-	if (debug) {
-		console.log("Executing SQL:", sql);
-		console.log("Parameters:", params);
-		console.log("Method:", method);
-	}
-
 	switch (method) {
 		case "run": {
 			// For INSERT, UPDATE, DELETE operations
@@ -57,9 +51,6 @@ export const handleRemoteCallback = async ({
 					columnNames,
 					callback: (row) => {
 						callbackReceived = true;
-						if (debug) {
-							console.log("callback Row data:", row);
-						}
 						if (Array.isArray(row)) {
 							// Store the first row's values
 							rowData = row;
@@ -79,11 +70,6 @@ export const handleRemoteCallback = async ({
 				const errorMsg = "No callback received for get method";
 				console.error(errorMsg);
 				return fail(errorMsg);
-			}
-
-			if (debug) {
-				console.log("columnNames", columnNames);
-				console.log("get row data:", rowData);
 			}
 
 			// For get method, return a single array of values
@@ -116,11 +102,6 @@ export const handleRemoteCallback = async ({
 				const errorMsg = e instanceof Error ? e.message : String(e);
 				console.error("Error getting all/values data:", errorMsg);
 				return fail(errorMsg);
-			}
-
-			if (debug) {
-				console.log("columnNames", columnNames);
-				console.log("all/values rows data:", rowsData);
 			}
 
 			// For all/values methods, return an array of arrays
