@@ -4,6 +4,8 @@
 
 Initial release of `@firtoz/worker-helper` - Type-safe Web Worker communication with Zod validation for both client and worker sides.
 
+> **⚠️ Early WIP Notice:** This package is in very early development and is **not production-ready**. It is TypeScript-only and may have breaking changes. While I (the maintainer) have limited time, I'm open to PRs for features, bug fixes, or additional support (like JS builds). Please feel free to try it out and contribute! See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
+
 ## Worker-Side (`WorkerHelper`)
 
 - **Abstract class pattern** for creating type-safe workers

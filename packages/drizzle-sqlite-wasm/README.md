@@ -2,6 +2,8 @@
 
 TanStack DB collections backed by SQLite WASM running in Web Workers, with full Drizzle ORM integration. Build reactive, type-safe SQLite applications in the browser with non-blocking database operations.
 
+> **⚠️ Early WIP Notice:** This package is in very early development and is **not production-ready**. It is TypeScript-only and may have breaking changes. While I (the maintainer) have limited time, I'm open to PRs for features, bug fixes, or additional support (like JS builds). Please feel free to try it out and contribute! See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
+
 ## Installation
 
 ```bash

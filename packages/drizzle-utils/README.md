@@ -2,6 +2,8 @@
 
 Shared utilities and types for Drizzle ORM-based packages. Provides type-safe table builders with automatic timestamp tracking, branded IDs, and common migration types.
 
+> **⚠️ Early WIP Notice:** This package is in very early development and is **not production-ready**. It is TypeScript-only and may have breaking changes. While I (the maintainer) have limited time, I'm open to PRs for features, bug fixes, or additional support (like JS builds). Please feel free to try it out and contribute! See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
+
 ## Installation
 
 ```bash

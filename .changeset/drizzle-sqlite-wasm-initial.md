@@ -4,6 +4,8 @@
 
 Initial release of `@firtoz/drizzle-sqlite-wasm` - TanStack DB collections backed by SQLite WASM running in Web Workers, with full Drizzle ORM integration.
 
+> **⚠️ Early WIP Notice:** This package is in very early development and is **not production-ready**. It is TypeScript-only and may have breaking changes. While I (the maintainer) have limited time, I'm open to PRs for features, bug fixes, or additional support (like JS builds). Please feel free to try it out and contribute! See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
+
 ## Features
 
 ### TanStack DB Collections (Primary Feature)
