@@ -15,6 +15,7 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 	dbName: string,
 	schema: TSchema,
 	migrations: DurableSqliteMigrationConfig,
+	debug?: boolean,
 ) => {
 	const resolveRef = useRef<null | (() => void)>(null);
 	const rejectRef = useRef<null | ((error: unknown) => void)>(null);
@@ -45,8 +46,6 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 		let mounted = true;
 
 		const init = async () => {
-			console.log(`[PERF] Requesting db instance for ${dbName}`);
-
 			// Initialize manager if not already initialized
 			if (!isSqliteWorkerInitialized()) {
 				await initializeSqliteWorker(WorkerConstructor);
@@ -58,8 +57,6 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 			);
 			const manager = getSqliteWorkerManager();
 			const instance = await manager.getDbInstance(dbName);
-
-			console.log(`[PERF] DB instance ready for ${dbName}`);
 
 			if (mounted) {
 				sqliteClientRef.current = instance;
@@ -76,7 +73,9 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 
 	// Create drizzle instance with a callback-based approach that waits for the client
 	const drizzle = useMemo(() => {
-		console.log(`[DEBUG] ${dbName} - creating drizzle proxy wrapper`);
+		if (debug) {
+			console.log(`[DEBUG] ${dbName} - creating drizzle proxy wrapper`);
+		}
 		return drizzleSqliteWasmWorker<TSchema>(
 			{
 				performRemoteCallback: (data, resolve, reject) => {
@@ -92,9 +91,6 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 						);
 						return;
 					}
-					console.log(
-						`[DEBUG] ${dbName} - forwarding performRemoteCallback to real client`,
-					);
 					client.performRemoteCallback(data, resolve, reject);
 				},
 				onStarted: (callback) => {
@@ -117,20 +113,18 @@ export const useDrizzle = <TSchema extends Record<string, unknown>>(
 
 	useEffect(() => {
 		if (!sqliteClient) {
-			console.log(`[DEBUG] ${dbName} - waiting for sqliteClient...`);
+			if (debug) {
+				console.log(`[DEBUG] ${dbName} - waiting for sqliteClient...`);
+			}
 			return;
 		}
 
-		console.log(`[DEBUG] ${dbName} - sqliteClient ready, setting up migration`);
 		sqliteClient.onStarted(async () => {
 			try {
-				console.log(`[PERF] Migration start for ${dbName}`);
 				await customSqliteMigrate(drizzle, migrations);
-
-				console.log(`[PERF] Migration complete for ${dbName}`);
 				resolveRef.current?.();
 			} catch (error) {
-				console.error(`[PERF] Migration error for ${dbName}:`, error);
+				console.error(`Migration error for ${dbName}:`, error);
 				rejectRef.current?.(error);
 			}
 		});

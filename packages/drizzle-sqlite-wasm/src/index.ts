@@ -1,6 +1,6 @@
 export { drizzleSqliteWasm } from "./drizzle/direct";
 export { SqliteWorkerClient } from "./worker/client";
-export { drizzleCollectionOptions } from "./collections/drizzle-collection";
+export { sqliteCollectionOptions as drizzleCollectionOptions } from "./collections/sqlite-collection";
 export { syncableTable } from "@firtoz/drizzle-utils";
 export { makeId } from "@firtoz/drizzle-utils";
 export type {

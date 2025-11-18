@@ -10,14 +10,13 @@ import migrations from "test-schema/drizzle/migrations";
 import { todoLoader } from "~/utils/todo-loaders";
 import { ClientOnly } from "~/components/shared/ClientOnly";
 import { TodoListContainer } from "~/components/shared/TodoListContainer";
-import type { BaseTodoCollection } from "~/types/collection";
 
 export const loader = todoLoader;
 
 const TodoList = () => {
 	const { useCollection } = useDrizzleContext<typeof schema>();
 
-	const todoCollection = useCollection("todoTable") as BaseTodoCollection;
+	const todoCollection = useCollection("todoTable");
 
 	// Expose collection to window for testing
 	useEffect(() => {

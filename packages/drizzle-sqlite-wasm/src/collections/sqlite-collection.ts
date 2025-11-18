@@ -184,7 +184,7 @@ function convertOrderByToDrizzle<TTable extends Table>(
 	});
 }
 
-export function drizzleCollectionOptions<
+export function sqliteCollectionOptions<
 	const TDrizzle extends AnyDrizzleDatabase,
 	const TTableName extends string & ValidTableNames<DrizzleSchema<TDrizzle>>,
 	TTable extends DrizzleSchema<TDrizzle>[TTableName] & TableWithRequiredFields,

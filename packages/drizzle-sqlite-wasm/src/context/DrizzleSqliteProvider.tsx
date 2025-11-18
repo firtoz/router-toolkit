@@ -11,8 +11,8 @@ import {
 	type AnyDrizzleDatabase,
 	type ValidTableNames,
 	type DrizzleSchema,
-	drizzleCollectionOptions,
-} from "../collections/drizzle-collection";
+	sqliteCollectionOptions,
+} from "../collections/sqlite-collection";
 import { useDrizzle } from "../hooks/useDrizzle";
 import type { DurableSqliteMigrationConfig } from "../migration/migrator";
 import type { IdOf, InsertSchema } from "@firtoz/drizzle-utils";
@@ -57,8 +57,8 @@ export type DrizzleSqliteContextValue<TSchema extends Record<string, unknown>> =
 		) => void;
 	};
 
-// biome-ignore lint/suspicious/noExplicitAny: Context needs to accept any schema type
 export const DrizzleSqliteContext =
+	// biome-ignore lint/suspicious/noExplicitAny: Context needs to accept any schema type
 	createContext<DrizzleSqliteContextValue<any> | null>(null);
 
 type DrizzleSqliteProviderProps<TSchema extends Record<string, unknown>> =
@@ -67,6 +67,7 @@ type DrizzleSqliteProviderProps<TSchema extends Record<string, unknown>> =
 		dbName: string;
 		schema: TSchema;
 		migrations: DurableSqliteMigrationConfig;
+		debug?: boolean;
 	}>;
 
 export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
@@ -75,23 +76,15 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 	dbName,
 	schema,
 	migrations,
+	debug,
 }: DrizzleSqliteProviderProps<TSchema>) {
-	useEffect(() => {
-		console.log(`[PERF] DrizzleSqliteProvider init start for ${dbName}`);
-	}, [dbName]);
-
 	const { drizzle, readyPromise } = useDrizzle(
 		worker,
 		dbName,
 		schema,
 		migrations,
+		debug,
 	);
-
-	useEffect(() => {
-		readyPromise.then(() => {
-			console.log(`[PERF] DrizzleSqliteProvider ready for ${dbName}`);
-		});
-	}, [readyPromise, dbName]);
 
 	// Collection cache with ref counting
 	const collections = useMemo<Map<string, CollectionCacheEntry>>(
@@ -111,7 +104,7 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 			if (!collections.has(cacheKey)) {
 				// Create new collection and cache it with ref count 0
 				const collection = createCollection(
-					drizzleCollectionOptions({
+					sqliteCollectionOptions({
 						drizzle,
 						tableName,
 						readyPromise,
@@ -136,9 +129,6 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 				const entry = collections.get(tableName);
 				if (entry) {
 					entry.refCount++;
-					console.log(
-						`[Collection Cache] ${tableName} ref count: ${entry.refCount}`,
-					);
 				}
 			},
 			[collections],
@@ -150,13 +140,9 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 				const entry = collections.get(tableName);
 				if (entry) {
 					entry.refCount--;
-					console.log(
-						`[Collection Cache] ${tableName} ref count: ${entry.refCount}`,
-					);
 
 					// If ref count reaches 0, remove from cache
 					if (entry.refCount <= 0) {
-						console.log(`[Collection Cache] Removing ${tableName} from cache`);
 						collections.delete(tableName);
 					}
 				}

@@ -4,7 +4,7 @@ import {
 	DrizzleSqliteContext,
 	useCollection as useCollectionImpl,
 } from "./DrizzleSqliteProvider";
-import type { ValidTableNames } from "../collections/drizzle-collection";
+import type { ValidTableNames } from "../collections/sqlite-collection";
 
 export interface UseDrizzleContextReturn<
 	TSchema extends Record<string, unknown>,
