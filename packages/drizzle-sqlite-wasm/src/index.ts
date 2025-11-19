@@ -7,7 +7,6 @@ export type {
 	IdOf,
 	TableId,
 	Branded,
-	IdType,
 	SelectSchema,
 	InsertSchema,
 } from "@firtoz/drizzle-utils";

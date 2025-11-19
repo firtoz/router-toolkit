@@ -647,7 +647,6 @@ import {
   type IdOf,
   type TableId,
   type Branded,
-  type IdType,
   type SelectSchema,
   type InsertSchema,
 } from "@firtoz/drizzle-sqlite-wasm";

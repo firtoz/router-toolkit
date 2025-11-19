@@ -26,7 +26,6 @@ Initial release of `@firtoz/drizzle-utils` - Shared utilities and types for Driz
 ### Type Utilities
 
 - **Branded IDs** - Type-safe string IDs with table-specific branding
-  - `IdType` - Generic branded ID type
   - `TableId<TTableName>` - Table-specific branded ID type
   - `IdOf<TTable>` - Extract ID type from a table
   - `makeId()` - Safely create branded IDs

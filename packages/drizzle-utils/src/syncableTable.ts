@@ -8,9 +8,7 @@ import {
 	type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
 import { type BuildColumns, getTableColumns, SQL } from "drizzle-orm";
-import type { IdType, TableId } from "./collection-utils";
-
-export const idColumn = text("id").primaryKey().$type<IdType>();
+import type { TableId } from "./collection-utils";
 
 const createTableIdColumn = <TTableName extends string>() =>
 	text("id")

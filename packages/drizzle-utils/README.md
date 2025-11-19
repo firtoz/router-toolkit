@@ -169,10 +169,6 @@ Nullable integer timestamp column (mode: "timestamp") for soft deletes.
 
 Creates a branded type for better type safety.
 
-#### `IdType`
-
-Generic branded ID type (string).
-
 #### `TableId<TTableName>`
 
 Table-specific branded ID type with table name in the brand.

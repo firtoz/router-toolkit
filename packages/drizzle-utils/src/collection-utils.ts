@@ -7,8 +7,6 @@ import type { Collection, UtilsRecord } from "@tanstack/db";
  */
 export type Branded<T, Brand> = T & { __brand: Brand };
 
-export type IdType = Branded<string, "id">;
-
 export type TableId<TTableName extends string> = Branded<
 	string,
 	`${TTableName}_id`

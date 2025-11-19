@@ -18,7 +18,6 @@ export type {
 
 export type {
 	Branded,
-	IdType,
 	TableId,
 	IdOf,
 	SelectSchema,
@@ -30,7 +29,6 @@ export type {
 export { makeId } from "./collection-utils";
 
 export {
-	idColumn,
 	createdAtColumn,
 	updatedAtColumn,
 	deletedAtColumn,

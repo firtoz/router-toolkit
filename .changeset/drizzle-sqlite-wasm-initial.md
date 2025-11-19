@@ -114,7 +114,7 @@ Re-exports from `@firtoz/drizzle-utils`:
 
 - `syncableTable` - Create tables with timestamp tracking
 - `makeId` - Type-safe ID creation
-- `IdOf`, `TableId`, `Branded`, `IdType` - Type utilities
+- `IdOf`, `TableId`, `Branded` - Type utilities
 - `SelectSchema`, `InsertSchema` - Schema helpers
 
 ## Bundler Support
