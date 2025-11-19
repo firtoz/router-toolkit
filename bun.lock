@@ -140,6 +140,7 @@
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@firtoz/maybe-error": "workspace:",
         "@types/node": "catalog:",
         "bun-types": "catalog:",
       },

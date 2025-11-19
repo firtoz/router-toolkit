@@ -13,6 +13,19 @@ import {
 	type OpfsEntry,
 } from "./clear-opfs.schema";
 
+declare global {
+	interface FileSystemDirectoryHandle {
+		entries: () => IterableIterator<[string, FileSystemHandle]>;
+		values: () => IterableIterator<FileSystemHandle>;
+	}
+}
+
+const isDirectory = (
+	handle: FileSystemHandle,
+): handle is FileSystemDirectoryHandle => {
+	return handle.kind === "directory";
+};
+
 class ClearOpfsWorkerHelper extends WorkerHelper<
 	ClearOpfsClientMessage,
 	ClearOpfsServerMessage
@@ -67,11 +80,10 @@ class ClearOpfsWorkerHelper extends WorkerHelper<
 	): Promise<OpfsEntry[]> {
 		const entries: OpfsEntry[] = [];
 
-		// @ts-expect-error - OPFS API not fully typed
 		for await (const [name, handle] of directory.entries()) {
 			const entryPath = path === "/" ? `/${name}` : `${path}/${name}`;
 
-			if (handle.kind === "directory") {
+			if (isDirectory(handle)) {
 				const children = await this.listDirectoryRecursive(handle, entryPath);
 				entries.push({
 					name,
@@ -96,7 +108,6 @@ class ClearOpfsWorkerHelper extends WorkerHelper<
 			const root = await navigator.storage.getDirectory();
 			let count = 0;
 
-			// @ts-expect-error - OPFS API not fully typed
 			for await (const entry of root.values()) {
 				try {
 					await root.removeEntry(entry.name, { recursive: true });
@@ -129,7 +140,7 @@ class ClearOpfsWorkerHelper extends WorkerHelper<
 				await this.listOPFS();
 				break;
 			default:
-				return exhaustiveGuard(type);
+				throw exhaustiveGuard(type);
 		}
 	}
 }

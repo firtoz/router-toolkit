@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { WorkerHelper } from "../src/worker-helper";
+import { exhaustiveGuard } from "@firtoz/maybe-error";
 
 // Define test schemas
 const InputSchema = z.discriminatedUnion("type", [
@@ -88,6 +89,8 @@ class TestWorkerHelper extends WorkerHelper<Input, Output> {
 							message: "Error handled without throwing",
 						});
 						break;
+					default:
+						throw exhaustiveGuard(data);
 				}
 			},
 			handleInputValidationError: (error, originalData) => {

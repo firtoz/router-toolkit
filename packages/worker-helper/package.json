@@ -60,6 +60,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "catalog:",
+		"@firtoz/maybe-error": "workspace:",
 		"bun-types": "catalog:"
 	}
 }

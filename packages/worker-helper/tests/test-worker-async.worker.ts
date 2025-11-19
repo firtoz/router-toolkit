@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { exhaustiveGuard } from "@firtoz/maybe-error";
 import { WorkerHelper } from "../src/worker-helper";
 
 // Define test schemas
@@ -64,6 +65,8 @@ class TestWorkerHelperAsync extends WorkerHelper<Input, Output> {
 							throw new Error("Async error for testing");
 						}
 						break;
+					default:
+						throw exhaustiveGuard(data);
 				}
 			},
 

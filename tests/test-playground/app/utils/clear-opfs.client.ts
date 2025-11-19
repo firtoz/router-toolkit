@@ -52,7 +52,7 @@ export class ClearOpfsWorkerClient extends WorkerClient<
 				this.onErrorCallback?.(message.error);
 				break;
 			default:
-				return exhaustiveGuard(type);
+				throw exhaustiveGuard(type);
 		}
 	}
 
