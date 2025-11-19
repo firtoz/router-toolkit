@@ -20,7 +20,6 @@ npm install @firtoz/drizzle-sqlite-wasm @firtoz/drizzle-utils drizzle-orm @tanst
 - ⚛️ **React hooks** - Provider and hooks for easy integration
 - 🔄 **Migrations** - Automatic schema migrations with Drizzle snapshots
 - 🔌 **Bundler agnostic** - Works with Vite, Webpack, Parcel, and more
-- 🗄️ **IndexedDB fallback** - Seamless integration with IndexedDB for offline-first apps
 
 ## Quick Start
 
@@ -190,23 +189,6 @@ collection.subscribe((todos) => {
 - `tableName: string` - Table name
 - `readyPromise: Promise<void>` - Database ready promise
 - `syncMode?: "on-demand" | "realtime"` - Sync mode
-
-### IndexedDB Fallback
-
-Re-exported from `@firtoz/drizzle-indexeddb` for offline-first apps:
-
-```typescript
-import { indexedDBCollectionOptions } from "@firtoz/drizzle-sqlite-wasm";
-
-const collection = createCollection(
-  indexedDBCollectionOptions({
-    db: indexedDB,
-    tableName: "todos",
-  })
-);
-```
-
-Use IndexedDB for offline-first sync layer with consistent API across both storage backends.
 
 ## API Reference
 
@@ -405,44 +387,6 @@ const db1 = manager.getDatabase("app-data");
 const db2 = manager.getDatabase("cache-data");
 ```
 
-### Hybrid SQLite + IndexedDB
-
-Use SQLite for main data and IndexedDB for offline sync:
-
-```typescript
-import { 
-  drizzleCollectionOptions,
-  indexedDBCollectionOptions 
-} from "@firtoz/drizzle-sqlite-wasm";
-
-// SQLite for main storage
-const sqliteCollection = createCollection(
-  drizzleCollectionOptions({
-    drizzle,
-    tableName: "todos",
-    readyPromise,
-  })
-);
-
-// IndexedDB for offline queue
-const syncQueueCollection = createCollection(
-  indexedDBCollectionOptions({
-    db: indexedDB,
-    tableName: "sync_queue",
-  })
-);
-
-// Sync between them
-async function syncToServer() {
-  const queue = await syncQueueCollection.find();
-  
-  for (const item of queue) {
-    // Sync to server...
-    await syncQueueCollection.delete(item.id);
-  }
-}
-```
-
 ### Complex Queries with Drizzle
 
 ```typescript
@@ -635,12 +579,10 @@ import {
 ## Examples
 
 Check out the test playground for complete examples:
-- `tests/test-playground/app/routes/collections/` - React components using SQLite and IndexedDB
 - `tests/test-playground/e2e/` - E2E tests
 
 ## Dependencies
 
-- `@firtoz/drizzle-indexeddb`
 - `@firtoz/drizzle-utils`
 - `@firtoz/maybe-error`
 - `@firtoz/worker-helper`

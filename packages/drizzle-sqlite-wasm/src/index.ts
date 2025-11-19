@@ -9,11 +9,6 @@ export type {
 	SelectSchema,
 	InsertSchema,
 } from "@firtoz/drizzle-utils";
-export {
-	indexedDBCollectionOptions,
-	type IndexedDBCollectionConfig,
-	type IndexedDBSyncItem,
-} from "@firtoz/drizzle-indexeddb";
 export { useDrizzleSqliteDb } from "./hooks/useDrizzleSqliteDb";
 // SQLite WASM Provider
 export {

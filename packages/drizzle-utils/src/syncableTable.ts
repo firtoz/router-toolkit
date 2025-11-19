@@ -84,7 +84,7 @@ export const syncableTable = <
 
 		if (defaultValue instanceof SQL) {
 			throw new Error(
-				`Default value for column ${tableName}.${columnName} is a SQL expression, which is not supported for IndexedDB`,
+				`Default value for column ${tableName}.${columnName} is a SQL expression, which is not supported for IndexedDB.\n\nYou can use a default value or a default function instead.`,
 			);
 		}
 	}

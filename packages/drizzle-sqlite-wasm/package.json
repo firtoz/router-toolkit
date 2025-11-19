@@ -71,7 +71,6 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"@firtoz/drizzle-indexeddb": "workspace:*",
 		"@firtoz/drizzle-utils": "workspace:*",
 		"@firtoz/maybe-error": "workspace:*",
 		"@firtoz/worker-helper": "workspace:*",
