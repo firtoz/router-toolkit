@@ -19,7 +19,8 @@ export const useCachedFetch = <TInfo extends RouteWithLoaderModule>(
 } => {
 	// Generate URL using href, same as useDynamicFetcher
 	const url = useMemo(() => {
-		return href(path, ...args);
+		// biome-ignore lint/suspicious/noExplicitAny: Intentional
+		return href(path, ...(args as any));
 	}, [path, args]);
 
 	// Use the generated URL as the cache key

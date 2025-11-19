@@ -1,13 +1,37 @@
 # Contributing to Fullstack Toolkit Monorepo
 
-Thank you for your interest in contributing to the Fullstack Toolkit monorepo! This repository contains multiple packages that work together to provide TypeScript utilities for full-stack web development, including React Router, error handling, and edge computing.
+Thank you for your interest in contributing to the Fullstack Toolkit monorepo! This repository contains multiple packages that work together to provide TypeScript utilities for full-stack web development, including React Router, error handling, database management, and edge computing.
+
+## 🎉 PRs Welcome!
+
+**All packages in this monorepo are early works-in-progress and contributions are highly encouraged!** Whether you're fixing bugs, adding features, improving documentation, or helping with build tooling (like JavaScript builds), your contributions are welcome.
+
+As the maintainer, I have limited time but will do my best to review and merge helpful PRs. Don't hesitate to:
+- Fix bugs you encounter
+- Add features you need
+- Improve documentation
+- Add tests
+- Help with JavaScript/CommonJS builds
+- Optimize performance
+- Suggest improvements
+
+If you're unsure about something, feel free to open an issue or discussion first!
 
 ## Packages
 
-- **[@firtoz/router-toolkit](./packages/router-toolkit)** - React Router 7 utilities
-- **[@firtoz/maybe-error](./packages/maybe-error)** - Type-safe error handling
+### Core Utilities
+- **[@firtoz/router-toolkit](./packages/router-toolkit)** - React Router 7 framework mode utilities
+- **[@firtoz/maybe-error](./packages/maybe-error)** - Type-safe error handling pattern
 - **[@firtoz/hono-fetcher](./packages/hono-fetcher)** - Type-safe Hono API client
+
+### Database & Storage (⚠️ Early WIP)
+- **[@firtoz/drizzle-indexeddb](./packages/drizzle-indexeddb)** - IndexedDB collections with Drizzle migrations
+- **[@firtoz/drizzle-sqlite-wasm](./packages/drizzle-sqlite-wasm)** - SQLite WASM in Web Workers with Drizzle
+- **[@firtoz/drizzle-utils](./packages/drizzle-utils)** - Shared Drizzle utilities and types
+
+### Workers & Edge
 - **[@firtoz/websocket-do](./packages/websocket-do)** - WebSocket Durable Objects utilities
+- **[@firtoz/worker-helper](./packages/worker-helper)** - Type-safe Web Worker communication
 
 ## Development Setup
 
@@ -157,10 +181,48 @@ bun run format  # Fix auto-fixable issues
 - Use TypeScript in all examples
 - Add JSDoc comments for public APIs
 
+## Areas Where Help Is Especially Welcome
+
+### Build Tooling
+- JavaScript/CommonJS builds for better compatibility
+- ESM/CJS dual package support
+- Build optimization
+
+### Documentation
+- More examples and use cases
+- Better API documentation
+- Tutorials and guides
+
+### Testing
+- Unit tests
+- Integration tests
+- E2E tests
+
+### Features
+- New features you need
+- Performance improvements
+- TypeScript improvements
+
+### Bug Fixes
+- Any bugs you encounter
+- Edge cases
+- Browser compatibility
+
 ## Questions?
 
 - Check existing issues/discussions
 - Create new issue for bugs/features
 - Start discussion for general questions
+- Open a PR even if you're not sure - we can iterate together!
+
+## Note on Package Maturity
+
+Many packages are in early WIP stage and **not production-ready**. They're TypeScript-only for now. If you need:
+- JavaScript builds
+- Better browser compatibility
+- Additional features
+- Bug fixes
+
+Please don't hesitate to submit a PR! While I have limited time as the maintainer, I'm committed to reviewing and merging helpful contributions.
 
 Thank you for contributing! 

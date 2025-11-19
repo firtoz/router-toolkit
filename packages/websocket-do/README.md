@@ -6,6 +6,8 @@
 
 Type-safe WebSocket session management for Cloudflare Durable Objects with Hono integration.
 
+> **⚠️ Early WIP Notice:** This package is in very early development and is **not production-ready**. It is TypeScript-only and may have breaking changes. While I (the maintainer) have limited time, I'm open to PRs for features, bug fixes, or additional support (like JS builds). Please feel free to try it out and contribute! See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
+
 ## Features
 
 - 🔒 **Type-safe** - Full TypeScript support with generic types for messages and session data

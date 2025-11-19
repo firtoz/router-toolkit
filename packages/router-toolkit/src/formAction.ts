@@ -11,7 +11,7 @@
  * import { success } from "@firtoz/maybe-error";
  *
  * const schema = z.object({
- *   email: z.string().email(),
+ *   email: z.email(),
  *   password: z.string().min(8),
  * });
  *

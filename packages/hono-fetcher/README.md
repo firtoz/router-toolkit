@@ -6,6 +6,8 @@
 
 Type-safe Hono API client with full TypeScript inference for routes, params, and payloads.
 
+> **⚠️ Early WIP Notice:** This package is in very early development and is **not production-ready**. It is TypeScript-only and may have breaking changes. While I (the maintainer) have limited time, I'm open to PRs for features, bug fixes, or additional support (like JS builds). Please feel free to try it out and contribute! See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
+
 ## Features
 
 - 🔒 **Fully Type-Safe** - Complete TypeScript inference for routes, parameters, request bodies, and responses

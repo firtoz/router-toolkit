@@ -1,0 +1,66 @@
+{
+	"name": "@firtoz/worker-helper",
+	"version": "0.0.0",
+	"description": "Type-safe Web Worker helper with Zod validation for input and output messages",
+	"main": "./src/index.ts",
+	"module": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"import": "./src/index.ts",
+			"require": "./src/index.ts"
+		},
+		"./*": {
+			"types": "./src/*.ts",
+			"import": "./src/*.ts",
+			"require": "./src/*.ts"
+		}
+	},
+	"files": [
+		"src/**/*.ts",
+		"README.md",
+		"CHANGELOG.md"
+	],
+	"scripts": {
+		"typecheck": "tsc --noEmit -p ./tsconfig.json",
+		"lint": "biome check --write src",
+		"lint:ci": "biome ci src",
+		"format": "biome format src --write",
+		"test": "bun test",
+		"test:watch": "bun test --watch"
+	},
+	"keywords": [
+		"typescript",
+		"web-worker",
+		"worker",
+		"zod",
+		"validation",
+		"type-safe"
+	],
+	"author": "Firtina Ozbalikchi <firtoz@github.com>",
+	"license": "MIT",
+	"homepage": "https://github.com/firtoz/fullstack-toolkit#readme",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/firtoz/fullstack-toolkit.git",
+		"directory": "packages/worker-helper"
+	},
+	"bugs": {
+		"url": "https://github.com/firtoz/fullstack-toolkit/issues"
+	},
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"dependencies": {
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@types/node": "catalog:",
+		"@firtoz/maybe-error": "workspace:",
+		"bun-types": "catalog:"
+	}
+}

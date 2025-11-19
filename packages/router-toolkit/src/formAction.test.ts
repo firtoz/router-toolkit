@@ -22,7 +22,7 @@ describe("z.treeifyError", () => {
 	it("should return a tree of errors", () => {
 		const testSchema = z.object({
 			name: z.string().min(5),
-			email: z.string().email(),
+			email: z.email(),
 		});
 
 		const testResult = z.safeParse(testSchema, {

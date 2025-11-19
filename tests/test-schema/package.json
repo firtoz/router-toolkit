@@ -1,0 +1,46 @@
+{
+	"name": "test-schema",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./schema": {
+			"types": "./src/schema.ts",
+			"import": "./src/schema.ts",
+			"require": "./src/schema.ts"
+		},
+		"./drizzle/*": {
+			"import": "./drizzle/*",
+			"require": "./drizzle/*"
+		},
+		"./drizzle/migrations": {
+			"types": "./drizzle/migrations.d.ts",
+			"import": "./drizzle/migrations.js",
+			"require": "./drizzle/migrations.js"
+		},
+		"./drizzle/snapshots": {
+			"import": "./drizzle/snapshots.ts",
+			"require": "./drizzle/snapshots.ts"
+		},
+		"./drizzle/indexeddb-migrations": {
+			"import": "./drizzle/indexeddb-migrations/index.ts",
+			"require": "./drizzle/indexeddb-migrations/index.ts"
+		}
+	},
+	"files": [
+		"src/**/*.ts",
+		"drizzle/**/*"
+	],
+	"scripts": {
+		"db:generate": "bun drizzle-kit generate && bun post-generate.ts",
+		"db:reset": "bun reset-migrations.ts"
+	},
+	"devDependencies": {
+		"drizzle-kit": "^0.31.7",
+		"@firtoz/drizzle-indexeddb": "workspace:*"
+	},
+	"dependencies": {
+		"drizzle-orm": "catalog:",
+		"@firtoz/drizzle-sqlite-wasm": "workspace:*",
+		"@firtoz/drizzle-utils": "workspace:*"
+	}
+}

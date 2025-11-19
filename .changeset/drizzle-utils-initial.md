@@ -1,0 +1,79 @@
+---
+"@firtoz/drizzle-utils": minor
+---
+
+Initial release of `@firtoz/drizzle-utils` - Shared utilities and types for Drizzle ORM-based packages.
+
+> **⚠️ Early WIP Notice:** This package is in very early development and is **not production-ready**. It is TypeScript-only and may have breaking changes. While I (the maintainer) have limited time, I'm open to PRs for features, bug fixes, or additional support (like JS builds). Please feel free to try it out and contribute! See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
+
+## Features
+
+### Syncable Table Builder
+
+- **`syncableTable`** - Creates SQLite tables with automatic timestamp tracking
+  - Auto-generates UUID primary keys with type branding
+  - Includes `id`, `createdAt`, `updatedAt`, and `deletedAt` columns
+  - Validates that default values are compatible with IndexedDB (no SQL expressions)
+  - Full TypeScript type safety with branded IDs
+
+### Column Helpers
+
+- **`idColumn`** - Branded text primary key column
+- **`createdAtColumn`** - Integer timestamp with automatic default (now)
+- **`updatedAtColumn`** - Integer timestamp with automatic default (now)  
+- **`deletedAtColumn`** - Nullable integer timestamp for soft deletes
+
+### Type Utilities
+
+- **Branded IDs** - Type-safe string IDs with table-specific branding
+  - `TableId<TTableName>` - Table-specific branded ID type
+  - `IdOf<TTable>` - Extract ID type from a table
+  - `makeId()` - Safely create branded IDs
+- **Schema Helpers** - Type-safe Valibot schema inference
+  - `SelectSchema<TTable>` - Infer select schema from table
+  - `InsertSchema<TTable>` - Infer insert schema from table
+
+### Migration Types
+
+Shared TypeScript types for Drizzle migrations across different database backends:
+
+- **Journal Types** - `Journal`, `JournalEntry`
+- **Schema Definition Types** - `TableDefinition`, `ColumnDefinition`, `IndexDefinition`, `ForeignKeyDefinition`, `ViewDefinition`, `EnumDefinition`, etc.
+- **Snapshot Types** - `Snapshot`, `SnapshotMeta`, `SnapshotInternal`
+
+These types enable consistent migration handling in both IndexedDB and SQLite WASM packages.
+
+## Example
+
+```typescript
+import { syncableTable, idColumn } from "@firtoz/drizzle-utils";
+import { text } from "drizzle-orm/sqlite-core";
+
+// Create a table with automatic timestamp tracking
+const todoTable = syncableTable("todos", {
+  title: text("title").notNull(),
+  completed: integer("completed", { mode: "boolean" }).notNull().default(false),
+});
+
+// The table automatically includes:
+// - id: TableId<"todos"> (UUID primary key)
+// - createdAt: Date (auto-set on insert)
+// - updatedAt: Date (auto-set on insert/update)
+// - deletedAt: Date | null (for soft deletes)
+
+type Todo = typeof todoTable.$inferSelect;
+// {
+//   id: TableId<"todos">;
+//   title: string;
+//   completed: boolean;
+//   createdAt: Date;
+//   updatedAt: Date;
+//   deletedAt: Date | null;
+// }
+```
+
+## Dependencies
+
+- `drizzle-orm` (peer dependency)
+- `drizzle-valibot` (peer dependency)
+

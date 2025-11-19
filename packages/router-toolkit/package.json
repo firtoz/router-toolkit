@@ -67,13 +67,13 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"zod-form-data": "^3.0.1"
+		"zod-form-data": "catalog:"
 	},
 	"devDependencies": {
 		"@testing-library/react": "^16.3.0",
 		"@types/jsdom": "^27.0.0",
 		"@types/react": "catalog:",
 		"bun-types": "catalog:",
-		"jsdom": "^27.0.1"
+		"jsdom": "^27.2.0"
 	}
 }
