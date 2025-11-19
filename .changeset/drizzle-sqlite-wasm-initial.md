@@ -27,14 +27,6 @@ Initial release of `@firtoz/drizzle-sqlite-wasm` - TanStack DB collections backe
 
 ### Worker-Based SQLite
 
-**`SqliteWorkerClient`** - Type-safe Web Worker client for SQLite operations:
-
-- Runs SQLite database in a dedicated Web Worker for non-blocking UI
-- Built on `@firtoz/worker-helper` for type safety and validation
-- Automatic connection lifecycle management
-- Performance monitoring and diagnostics
-- Supports multiple database instances
-
 **`SqliteWorkerManager`** - Manages multiple SQLite databases in a single worker:
 
 - Efficient resource utilization with shared worker

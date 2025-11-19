@@ -291,26 +291,6 @@ function TodoList() {
 
 ### Worker API
 
-#### `SqliteWorkerClient`
-
-Type-safe client for SQLite Web Worker:
-
-```typescript
-import { SqliteWorkerClient } from "@firtoz/drizzle-sqlite-wasm";
-
-const worker = new Worker(/* worker URL */);
-const client = new SqliteWorkerClient(worker, "mydb", true); // debug flag
-
-client.onStarted(() => {
-  console.log("Database started!");
-});
-
-// Use with Drizzle
-import { drizzleSqliteWasmWorker } from "@firtoz/drizzle-sqlite-wasm/drizzle-sqlite-wasm-worker";
-
-const drizzle = drizzleSqliteWasmWorker(client, { schema });
-```
-
 #### `SqliteWorkerManager`
 
 Manages multiple SQLite databases in a single worker:
