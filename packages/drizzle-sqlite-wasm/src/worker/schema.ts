@@ -9,9 +9,13 @@ export type DbId = z.infer<typeof DbIdSchema>;
 export const StartRequestIdSchema = z.string().brand("start-request-id");
 export type StartRequestId = z.infer<typeof StartRequestIdSchema>;
 
+export const CheckpointIdSchema = z.string().brand("checkpoint-id");
+export type CheckpointId = z.infer<typeof CheckpointIdSchema>;
+
 export enum SqliteWorkerClientMessageType {
 	Start = "start",
 	RemoteCallbackRequest = "remote-callback-request",
+	Checkpoint = "checkpoint",
 }
 
 export enum SqliteWorkerServerMessageType {
@@ -19,6 +23,8 @@ export enum SqliteWorkerServerMessageType {
 	Started = "started",
 	RemoteCallbackResponse = "remote-callback-response",
 	RemoteCallbackError = "remote-callback-error",
+	CheckpointComplete = "checkpoint-complete",
+	CheckpointError = "checkpoint-error",
 }
 
 export const RemoteCallbackRequestSchema = z.object({
@@ -36,6 +42,14 @@ export type SqliteWorkerRemoteCallbackClientMessage = z.infer<
 	typeof RemoteCallbackRequestSchema
 >;
 
+export const CheckpointRequestSchema = z.object({
+	type: z.literal(SqliteWorkerClientMessageType.Checkpoint),
+	id: CheckpointIdSchema,
+	dbId: DbIdSchema,
+});
+
+export type CheckpointRequest = z.infer<typeof CheckpointRequestSchema>;
+
 export const SqliteWorkerClientMessageSchema = z.discriminatedUnion("type", [
 	z.object({
 		type: z.literal(SqliteWorkerClientMessageType.Start),
@@ -43,6 +57,7 @@ export const SqliteWorkerClientMessageSchema = z.discriminatedUnion("type", [
 		dbName: z.string(),
 	}),
 	RemoteCallbackRequestSchema,
+	CheckpointRequestSchema,
 ]);
 
 export const RemoteCallbackResponseSchema = z.object({
@@ -57,6 +72,17 @@ export const RemoteCallbackErrorServerMessageSchema = z.object({
 	error: z.string(),
 });
 
+export const CheckpointCompleteSchema = z.object({
+	type: z.literal(SqliteWorkerServerMessageType.CheckpointComplete),
+	id: CheckpointIdSchema,
+});
+
+export const CheckpointErrorSchema = z.object({
+	type: z.literal(SqliteWorkerServerMessageType.CheckpointError),
+	id: CheckpointIdSchema,
+	error: z.string(),
+});
+
 export const sqliteWorkerServerMessage = z.discriminatedUnion("type", [
 	z.object({
 		type: z.literal(SqliteWorkerServerMessageType.Ready),
@@ -68,6 +94,8 @@ export const sqliteWorkerServerMessage = z.discriminatedUnion("type", [
 	}),
 	RemoteCallbackResponseSchema,
 	RemoteCallbackErrorServerMessageSchema,
+	CheckpointCompleteSchema,
+	CheckpointErrorSchema,
 ]);
 
 export type SqliteWorkerClientMessage = z.infer<

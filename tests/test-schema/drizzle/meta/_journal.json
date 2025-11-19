@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1762293030925,
-      "tag": "0000_funny_penance",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1762294667224,
-      "tag": "0001_certain_supreme_intelligence",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1762547894700,
-      "tag": "0002_condemned_wendigo",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1762905176954,
-      "tag": "0003_groovy_tomorrow_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1762905283490,
-      "tag": "0004_peaceful_tusk",
+      "when": 1763580490375,
+      "tag": "0000_luxuriant_power_pack",
       "breakpoints": true
     }
   ]

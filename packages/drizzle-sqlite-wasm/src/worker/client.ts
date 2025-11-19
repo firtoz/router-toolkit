@@ -117,6 +117,28 @@ export class SqliteWorkerClient
 					}
 				}
 				break;
+			case SqliteWorkerServerMessageType.CheckpointComplete:
+				{
+					// Checkpoint completed successfully
+					if (this.debug) {
+						console.log(
+							"[SqliteWorkerClient] checkpoint complete:",
+							message.id,
+						);
+					}
+				}
+				break;
+			case SqliteWorkerServerMessageType.CheckpointError:
+				{
+					// Checkpoint failed
+					if (this.debug) {
+						console.error(
+							"[SqliteWorkerClient] checkpoint error:",
+							message.error,
+						);
+					}
+				}
+				break;
 			default:
 				return exhaustiveGuard(type);
 		}

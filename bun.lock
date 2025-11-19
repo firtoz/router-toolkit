@@ -190,6 +190,7 @@
         "drizzle-orm": "catalog:",
       },
       "devDependencies": {
+        "@firtoz/drizzle-indexeddb": "workspace:*",
         "drizzle-kit": "^0.31.7",
       },
     },

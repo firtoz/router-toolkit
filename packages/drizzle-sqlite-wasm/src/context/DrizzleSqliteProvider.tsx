@@ -62,6 +62,7 @@ type DrizzleSqliteProviderProps<TSchema extends Record<string, unknown>> =
 		schema: TSchema;
 		migrations: DurableSqliteMigrationConfig;
 		debug?: boolean;
+		enableCheckpoint?: boolean;
 	}>;
 
 export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
@@ -71,8 +72,9 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 	schema,
 	migrations,
 	debug,
+	enableCheckpoint = false,
 }: DrizzleSqliteProviderProps<TSchema>) {
-	const { drizzle, readyPromise } = useDrizzleSqliteDb(
+	const { drizzle, readyPromise, sqliteClient } = useDrizzleSqliteDb(
 		worker,
 		dbName,
 		schema,
@@ -102,6 +104,10 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 							ValidTableNames<DrizzleSchema<AnyDrizzleDatabase>>,
 						readyPromise,
 						// syncMode: "on-demand",
+						checkpoint:
+							enableCheckpoint && sqliteClient
+								? () => sqliteClient.checkpoint()
+								: undefined,
 					}),
 				);
 				collections.set(cacheKey, {
@@ -114,7 +120,7 @@ export function DrizzleSqliteProvider<TSchema extends Record<string, unknown>>({
 			return collections.get(cacheKey)!
 				.collection as unknown as SqliteCollection<TSchema, TTableName>;
 		},
-		[drizzle, collections, readyPromise],
+		[drizzle, collections, readyPromise, sqliteClient, enableCheckpoint],
 	);
 
 	const incrementRefCount: DrizzleSqliteContextValue<TSchema>["incrementRefCount"] =

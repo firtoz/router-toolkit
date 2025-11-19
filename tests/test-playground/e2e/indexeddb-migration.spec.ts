@@ -73,7 +73,7 @@ test.describe("@firtoz/drizzle-indexeddb - IndexedDB Migrations", () => {
 		await expect(page.getByTestId("applied-migrations-count")).toHaveText(
 			"5 applied",
 		);
-		await expect(page.getByTestId("db-version")).toHaveText("5");
+		await expect(page.getByTestId("db-version")).toHaveText("6");
 		await expect(page.getByTestId("applied-migrations-list")).toHaveText(
 			"0, 1, 2, 3, 4",
 		);
@@ -241,7 +241,7 @@ test.describe("@firtoz/drizzle-indexeddb - IndexedDB Migrations", () => {
 		});
 
 		// Verify structure
-		expect(dbStructure.version).toBe(5); // 5 migrations
+		expect(dbStructure.version).toBe(6); // 5 migrations + 1
 		expect(dbStructure.objectStores).toContain("todo");
 		expect(dbStructure.objectStores).toContain("user");
 		expect(dbStructure.objectStores).toContain("__drizzle_migrations");

@@ -19,16 +19,16 @@ const createTableIdColumn = <TTableName extends string>() =>
 		});
 
 // Use unixepoch with 'subsec' modifier for millisecond precision timestamps
-export const createdAtColumn = integer("createdAt", { mode: "timestamp" })
+export const createdAtColumn = integer("createdAt", { mode: "timestamp_ms" })
 	.$defaultFn(() => new Date())
 	.notNull();
 
-export const updatedAtColumn = integer("updatedAt", { mode: "timestamp" })
+export const updatedAtColumn = integer("updatedAt", { mode: "timestamp_ms" })
 	.$defaultFn(() => new Date())
 	.notNull();
 
 export const deletedAtColumn = integer("deletedAt", {
-	mode: "timestamp",
+	mode: "timestamp_ms",
 });
 
 export const syncableTable = <

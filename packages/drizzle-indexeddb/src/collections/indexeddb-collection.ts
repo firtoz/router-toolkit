@@ -202,6 +202,11 @@ function getAllFromStore(
 	storeName: string,
 ): Promise<IndexedDBSyncItem[]> {
 	return new Promise((resolve, reject) => {
+		if (!db.objectStoreNames.contains(storeName)) {
+			resolve([]);
+			return;
+		}
+
 		const transaction = db.transaction(storeName, "readonly");
 
 		const store = transaction.objectStore(storeName);
@@ -452,6 +457,10 @@ function discoverIndexes(
 	db: IDBDatabase,
 	storeName: string,
 ): Record<string, string> {
+	if (!db.objectStoreNames.contains(storeName)) {
+		return {};
+	}
+
 	const transaction = db.transaction(storeName, "readonly");
 
 	const store = transaction.objectStore(storeName);

@@ -75,6 +75,11 @@ export interface DrizzleCollectionConfig<
 	 * Enable debug logging for query execution and mutations
 	 */
 	debug?: boolean;
+	/**
+	 * Optional callback to checkpoint the database after mutations
+	 * This ensures WAL is flushed to the main database file for OPFS persistence
+	 */
+	checkpoint?: () => Promise<void>;
 }
 
 export type ValidTableNames<TSchema extends Record<string, unknown>> = {
@@ -294,6 +299,11 @@ export function sqliteCollectionOptions<
 						}
 					}
 				});
+
+				// Checkpoint to ensure WAL is flushed to main DB file
+				if (config.checkpoint) {
+					await config.checkpoint();
+				}
 			});
 
 			// Only update reactive store after transaction succeeds
@@ -308,104 +318,88 @@ export function sqliteCollectionOptions<
 		};
 
 		updateListener = async (params) => {
-			// Optimistically update the reactive store before database operation
+			// Queue the transaction to serialize SQLite operations
+			const results: Array<InferSchemaOutput<SelectSchema<TTable>>> = [];
+			await queueTransaction(async () => {
+				await config.drizzle.transaction(async (tx) => {
+					for (const item of params.transaction.mutations) {
+						if (config.debug) {
+							console.log(
+								`[${new Date().toISOString()}] updateListener updating`,
+								item,
+							);
+						}
+
+						const updateTime = new Date();
+						const result: Array<InferSchemaOutput<SelectSchema<TTable>>> =
+							(await tx
+								.update(table)
+								.set({
+									...item.changes,
+									updatedAt: updateTime,
+								} as SQLiteUpdateSetSource<typeof table>)
+								.where(eq(table.id, item.key))
+								.returning()) as Array<InferSchemaOutput<SelectSchema<TTable>>>;
+
+						if (config.debug) {
+							console.log(
+								`[${new Date().toISOString()}] updateListener result`,
+								result,
+							);
+						}
+
+						results.push(...result);
+					}
+				});
+
+				// Checkpoint to ensure WAL is flushed to main DB file BEFORE UI updates
+				// This ensures persistence before the updateListener completes
+				if (config.checkpoint) {
+					await config.checkpoint();
+				}
+			});
+
+			// Update the reactive store with actual database results
+			// This happens after checkpoint completes
 			begin();
-			for (const item of params.transaction.mutations) {
+			for (const result of results) {
 				write({
 					type: "update",
-					value: item.modified,
+					value: result,
 				});
 			}
 			commit();
-
-			try {
-				// Queue the transaction to serialize SQLite operations
-				await queueTransaction(async () => {
-					await config.drizzle.transaction(async (tx) => {
-						for (const item of params.transaction.mutations) {
-							if (config.debug) {
-								console.log(
-									`[${new Date().toISOString()}] updateListener updating`,
-									item,
-								);
-							}
-
-							const updateTime = new Date();
-							const result: Array<InferSchemaOutput<SelectSchema<TTable>>> =
-								(await tx
-									.update(table)
-									.set({
-										...item.changes,
-										updatedAt: updateTime,
-									} as SQLiteUpdateSetSource<typeof table>)
-									.where(eq(table.id, item.key))
-									.returning()) as Array<
-									InferSchemaOutput<SelectSchema<TTable>>
-								>;
-
-							if (config.debug) {
-								console.log(
-									`[${new Date().toISOString()}] updateListener result`,
-									result,
-								);
-							}
-						}
-					});
-				});
-			} catch (error) {
-				// Rollback optimistic updates on error
-				begin();
-				for (const item of params.transaction.mutations) {
-					const original = item.original;
-					write({
-						type: "update",
-						value: original,
-					});
-				}
-				commit();
-
-				throw error;
-			}
 		};
 
 		deleteListener = async (params) => {
-			begin();
-			for (const item of params.transaction.mutations) {
-				if (config.debug) {
-					console.log(
-						`[${new Date().toISOString()}] deleteListener write`,
-						item,
-					);
-				}
-				write({
-					type: "delete",
-					value: item.modified,
+			// Queue the transaction to serialize SQLite operations
+			await queueTransaction(async () => {
+				await config.drizzle.transaction(async (tx) => {
+					for (const item of params.transaction.mutations) {
+						await tx.delete(table).where(eq(table.id, item.key));
+					}
 				});
-			}
-			commit();
 
-			try {
-				// Queue the transaction to serialize SQLite operations
-				await queueTransaction(async () => {
-					await config.drizzle.transaction(async (tx) => {
-						for (const item of params.transaction.mutations) {
-							await tx.delete(table).where(eq(table.id, item.key));
-						}
-					});
-				});
-			} catch (error) {
+				// Checkpoint to ensure WAL is flushed to main DB file
+				if (config.checkpoint) {
+					await config.checkpoint();
+				}
+
 				begin();
 				for (const item of params.transaction.mutations) {
-					const original = item.original;
+					if (config.debug) {
+						console.log(
+							`[${new Date().toISOString()}] deleteListener write`,
+							item,
+						);
+					}
 					write({
-						type: "insert",
-						value: original,
+						type: "delete",
+						value: item.modified,
 					});
 				}
 				commit();
-
-				throw error;
-			}
+			});
 		};
 
 		const loadSubset = async (options: LoadSubsetOptions) => {

@@ -49,6 +49,17 @@ export const TodoListContainer = ({
 		[collection],
 	);
 
+	const handleBatchAddTodo = useCallback(
+		(titles: string[]) => {
+			titles.forEach((title) => {
+				collection.insert({
+					title,
+				});
+			});
+		},
+		[collection],
+	);
+
 	const handleSelect = useCallback((todo: Todo, selected: boolean) => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
@@ -85,14 +96,25 @@ export const TodoListContainer = ({
 
 	const handleDeleteTodo = useCallback(
 		(todo: Todo) => {
-			if (todo.deletedAt) {
-				collection.delete(todo.id);
-				return;
-			}
-
 			collection.update(todo.id, (draft) => {
 				draft.deletedAt = new Date();
 			});
+		},
+		[collection],
+	);
+
+	const handleRestoreTodo = useCallback(
+		(todo: Todo) => {
+			collection.update(todo.id, (draft) => {
+				draft.deletedAt = null;
+			});
+		},
+		[collection],
+	);
+
+	const handlePurgeTodo = useCallback(
+		(todo: Todo) => {
+			collection.delete(todo.id);
 		},
 		[collection],
 	);
@@ -141,12 +163,7 @@ export const TodoListContainer = ({
 	const handleBulkDelete = useCallback(() => {
 		const selectedTodos =
 			todos?.filter((t) => selectedIds.has(String(t.id))) ?? [];
-		const alreadyDeleted = selectedTodos.filter((t) => t.deletedAt);
 		const toSoftDelete = selectedTodos.filter((t) => !t.deletedAt);
-
-		if (alreadyDeleted.length > 0) {
-			collection.delete(alreadyDeleted.map((t) => t.id));
-		}
 
 		if (toSoftDelete.length > 0) {
 			collection.update(
@@ -158,7 +175,19 @@ export const TodoListContainer = ({
 				},
 			);
 		}
-	}, [todos, selectedIds, collection]);
+		setSelectedIds(new Set());
+	}, [todos, selectedIds, collection, setSelectedIds]);
+
+	const handleBulkPurge = useCallback(() => {
+		const selectedTodos =
+			todos?.filter((t) => selectedIds.has(String(t.id))) ?? [];
+		const deletedTodos = selectedTodos.filter((t) => t.deletedAt);
+
+		if (deletedTodos.length > 0) {
+			collection.delete(deletedTodos.map((t) => t.id));
+		}
+		setSelectedIds(new Set());
+	}, [todos, selectedIds, collection, setSelectedIds]);
 
 	if (isLoading) {
 		return null;
@@ -178,103 +207,142 @@ export const TodoListContainer = ({
 	).length;
 
 	return (
-		<div>
-			<h1>{title}</h1>
-			<p>{description}</p>
+		<div className="todo-container">
+			<div className="todo-header">
+				<h1 className="todo-title">{title}</h1>
+				<p className="todo-desc">{description}</p>
 
-			<div>
-				<div>
-					<div>Total</div>
-					<div data-testid="count-total">{totalCount}</div>
-				</div>
-				<div>
-					<div>Pending</div>
-					<div data-testid="count-pending">{pendingCount}</div>
-				</div>
-				<div>
-					<div>Done</div>
-					<div data-testid="count-done">{completedCount}</div>
+				<div className="todo-stats">
+					<div className="stat-card">
+						<div className="stat-label">Total</div>
+						<div className="stat-value" data-testid="count-total">
+							{totalCount}
+						</div>
+					</div>
+					<div className="stat-card">
+						<div className="stat-label">Pending</div>
+						<div className="stat-value" data-testid="count-pending">
+							{pendingCount}
+						</div>
+					</div>
+					<div className="stat-card">
+						<div className="stat-label">Done</div>
+						<div className="stat-value" data-testid="count-done">
+							{completedCount}
+						</div>
+					</div>
 				</div>
 			</div>
 
-			<div>
-				<TodoInput onAdd={handleAddTodo} />
-			</div>
+			<div className="todo-body">
+				<TodoInput onAdd={handleAddTodo} onBatchAdd={handleBatchAddTodo} />
 
-			<div>
-				<button
-					onClick={() => setShowDeleted(!showDeleted)}
-					type="button"
-					data-testid="toggle-deleted"
-				>
-					{showDeleted ? "Hide Deleted" : "Show Deleted"}
-				</button>
+				<div className="toolbar">
+					<button
+						className="btn-sm"
+						onClick={() => setShowDeleted(!showDeleted)}
+						type="button"
+						data-testid="toggle-deleted"
+					>
+						{showDeleted ? "Hide Deleted" : "Show Deleted"}
+					</button>
 
-				{todos && todos.length > 0 && (
-					<>
-						<button
-							onClick={handleSelectAll}
-							type="button"
-							data-testid="select-all"
-						>
-							{selectedIds.size === todos.length
-								? "Deselect All"
-								: "Select All"}
-						</button>
+					{todos && todos.length > 0 && (
+						<>
+							<button
+								className="btn-sm"
+								onClick={handleSelectAll}
+								type="button"
+								data-testid="select-all"
+							>
+								{selectedIds.size === todos.length
+									? "Deselect All"
+									: "Select All"}
+							</button>
 
-						{selectedIds.size > 0 && (
-							<>
-								{selectedIncomplete > 0 && (
-									<button
-										onClick={handleBulkComplete}
-										type="button"
-										data-testid="bulk-complete"
-									>
-										Complete ({selectedIncomplete})
-									</button>
-								)}
-								{selectedCompleted > 0 && (
-									<button
-										onClick={handleBulkUndoComplete}
-										type="button"
-										data-testid="bulk-uncomplete"
-									>
-										Reopen ({selectedCompleted})
-									</button>
-								)}
-								<button
-									onClick={handleBulkDelete}
-									type="button"
-									data-testid="bulk-delete"
-								>
-									Delete ({selectedIds.size})
-								</button>
-							</>
-						)}
-					</>
+							{selectedIds.size > 0 && (
+								<>
+									{selectedIncomplete > 0 && (
+										<button
+											className="btn-sm btn-primary-subtle"
+											onClick={handleBulkComplete}
+											type="button"
+											data-testid="bulk-complete"
+										>
+											Complete ({selectedIncomplete})
+										</button>
+									)}
+									{selectedCompleted > 0 && (
+										<button
+											className="btn-sm btn-primary-subtle"
+											onClick={handleBulkUndoComplete}
+											type="button"
+											data-testid="bulk-uncomplete"
+										>
+											Reopen ({selectedCompleted})
+										</button>
+									)}
+									{showDeleted ? (
+										<button
+											className="btn-sm btn-danger-subtle"
+											onClick={handleBulkPurge}
+											type="button"
+											data-testid="bulk-purge"
+										>
+											Purge ({selectedIds.size})
+										</button>
+									) : (
+										<button
+											className="btn-sm btn-danger-subtle"
+											onClick={handleBulkDelete}
+											type="button"
+											data-testid="bulk-delete"
+										>
+											Delete ({selectedIds.size})
+										</button>
+									)}
+								</>
+							)}
+						</>
+					)}
+				</div>
+
+				{todos && todos.length > 0 ? (
+					<div data-testid="todo-list">
+						{todos.map((todo, index) => {
+							// Calculate delta from previous item's createdAt
+							let deltaMs: number | undefined;
+							if (index > 0 && todos[index - 1]) {
+								const prevCreatedAt = todos[index - 1].createdAt.getTime();
+								const currentCreatedAt = todo.createdAt.getTime();
+								deltaMs = currentCreatedAt - prevCreatedAt;
+							}
+
+							return (
+								<EnhancedTodoItem
+									key={String(todo.id)}
+									todo={todo}
+									onToggleComplete={handleToggleComplete}
+									onDelete={handleDeleteTodo}
+									onRestore={handleRestoreTodo}
+									onPurge={handlePurgeTodo}
+									onUpdate={handleUpdateTodo}
+									selected={selectedIds.has(String(todo.id))}
+									onSelect={handleSelect}
+									deltaMs={deltaMs}
+								/>
+							);
+						})}
+					</div>
+				) : (
+					<div className="empty-state" data-testid="empty-state">
+						<div className="empty-icon">📝</div>
+						<p className="empty-text">
+							No tasks yet. Add one above to get started.
+						</p>
+					</div>
 				)}
 			</div>
-
-			{todos && todos.length > 0 ? (
-				<div data-testid="todo-list">
-					{todos.map((todo) => (
-						<EnhancedTodoItem
-							key={String(todo.id)}
-							todo={todo}
-							onToggleComplete={handleToggleComplete}
-							onDelete={handleDeleteTodo}
-							onUpdate={handleUpdateTodo}
-							selected={selectedIds.has(String(todo.id))}
-							onSelect={handleSelect}
-						/>
-					))}
-				</div>
-			) : (
-				<div data-testid="empty-state">
-					<div>📝</div>
-					<p>No tasks yet. Add one above to get started.</p>
-				</div>
-			)}
 		</div>
 	);
 };

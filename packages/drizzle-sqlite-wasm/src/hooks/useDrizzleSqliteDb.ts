@@ -37,6 +37,7 @@ export const useDrizzleSqliteDb = <TSchema extends Record<string, unknown>>(
 			// SSR stub
 			setSqliteClient({
 				performRemoteCallback: () => {},
+				checkpoint: () => Promise.resolve(),
 				onStarted: () => {},
 				terminate: () => {},
 			});
@@ -134,5 +135,5 @@ export const useDrizzleSqliteDb = <TSchema extends Record<string, unknown>>(
 		};
 	}, [sqliteClient, drizzle, migrations, dbName]);
 
-	return { drizzle, readyPromise };
+	return { drizzle, readyPromise, sqliteClient };
 };

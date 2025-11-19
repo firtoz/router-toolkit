@@ -1,5 +1,6 @@
 import type { RoutePath } from "@firtoz/router-toolkit";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import {
 	DrizzleSqliteProvider,
 	useDrizzleSqlite,
@@ -38,14 +39,54 @@ const TodoList = () => {
 };
 
 export default function SqliteTest() {
+	const [searchParams, setSearchParams] = useSearchParams();
+	const [enableCheckpoint, setEnableCheckpoint] = useState(() => {
+		const param = searchParams.get("checkpoint");
+		return param === null || param === "true";
+	});
+
+	const toggleCheckpoint = useCallback(() => {
+		const newValue = !enableCheckpoint;
+		setEnableCheckpoint(newValue);
+		setSearchParams(
+			(prev) => {
+				prev.set("checkpoint", String(newValue));
+				return prev;
+			},
+			{ replace: true },
+		);
+	}, [setSearchParams, enableCheckpoint]);
+
 	return (
 		<ClientOnly>
+			<div style={{ marginBottom: "1rem", padding: "0.5rem" }}>
+				<label
+					style={{
+						display: "flex",
+						alignItems: "center",
+						gap: "0.5rem",
+						cursor: "pointer",
+					}}
+				>
+					<input
+						type="checkbox"
+						checked={enableCheckpoint}
+						onChange={toggleCheckpoint}
+						data-testid="checkpoint-toggle"
+					/>
+					<span>
+						Enable WAL Checkpoint (ensures OPFS persistence){" "}
+						{enableCheckpoint ? "✓" : "✗"}
+					</span>
+				</label>
+			</div>
 			<DrizzleSqliteProvider
 				worker={SqliteWorker}
 				dbName="test.db"
 				schema={schema}
 				migrations={migrations}
 				debug={true}
+				enableCheckpoint={enableCheckpoint}
 			>
 				<TodoList />
 			</DrizzleSqliteProvider>

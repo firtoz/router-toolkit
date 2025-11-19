@@ -103,6 +103,38 @@ class SqliteWorkerHelper extends WorkerHelper<
 		}
 	}
 
+	// Helper method to checkpoint the database (flush WAL to main DB file)
+	private async processCheckpointRequest(
+		data: Extract<
+			SqliteWorkerClientMessage,
+			{ type: SqliteWorkerClientMessageType.Checkpoint }
+		>,
+		sqliteDb: Database,
+	): Promise<void> {
+		try {
+			// Execute PRAGMA wal_checkpoint(TRUNCATE) to ensure all WAL data
+			// is written to the main database file and the WAL is truncated.
+			// This ensures persistence to OPFS before page reload.
+			sqliteDb.exec({
+				sql: "PRAGMA wal_checkpoint(TRUNCATE);",
+				callback: () => {},
+			});
+
+			this.send({
+				type: SqliteWorkerServerMessageType.CheckpointComplete,
+				id: data.id,
+			});
+		} catch (e: unknown) {
+			const errorMsg = e instanceof Error ? e.message : String(e);
+			this.error("Error checkpointing database:", errorMsg);
+			this.send({
+				type: SqliteWorkerServerMessageType.CheckpointError,
+				id: data.id,
+				error: errorMsg,
+			});
+		}
+	}
+
 	private async startDatabase(
 		sqlite3: Sqlite3Static,
 		dbName: string,
@@ -115,6 +147,19 @@ class SqliteWorkerHelper extends WorkerHelper<
 
 		if ("opfs" in sqlite3) {
 			db = new sqlite3.oo1.OpfsDb(dbFileName);
+			this.log("OPFS database created:", db.filename);
+
+			// Configure database for reliable persistence
+			try {
+				// Ensure WAL mode is enabled
+				db.exec("PRAGMA journal_mode=WAL;");
+				// Use FULL synchronous mode to ensure data is written to persistent storage
+				// before transactions are considered complete
+				db.exec("PRAGMA synchronous=FULL;");
+				this.log("Database configured with WAL mode and FULL synchronous");
+			} catch (e) {
+				this.error("Error configuring database:", e);
+			}
 		} else {
 			db = new sqlite3.oo1.DB(dbFileName, "c");
 			this.log(
@@ -169,6 +214,34 @@ class SqliteWorkerHelper extends WorkerHelper<
 
 					// Process the request with the correct database
 					await this.processRemoteCallbackRequest(data, dbEntry.db);
+				}
+				break;
+			case SqliteWorkerClientMessageType.Checkpoint:
+				{
+					// Get the database for this request
+					const dbEntry = this.databases.get(data.dbId);
+					if (!dbEntry) {
+						this.error(`Database not found for dbId: ${data.dbId}`);
+						this.send({
+							type: SqliteWorkerServerMessageType.CheckpointError,
+							id: data.id,
+							error: `Database not found: ${data.dbId}`,
+						});
+						return;
+					}
+
+					if (!dbEntry.initialized) {
+						this.error(`Database not initialized for dbId: ${data.dbId}`);
+						this.send({
+							type: SqliteWorkerServerMessageType.CheckpointError,
+							id: data.id,
+							error: `Database not initialized: ${data.dbId}`,
+						});
+						return;
+					}
+
+					// Process the checkpoint request
+					await this.processCheckpointRequest(data, dbEntry.db);
 				}
 				break;
 			default:

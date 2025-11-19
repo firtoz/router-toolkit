@@ -62,8 +62,8 @@ export async function migrateIndexedDBWithFunctions(
 			);
 		}
 		currentDb.close();
-		// Re-open with correct version
-		const db = await openDatabase(dbName, migrations.length);
+		// Re-open with correct version (migrations.length + 1 because version starts at 1)
+		const db = await openDatabase(dbName, migrations.length + 1);
 		if (debug) {
 			console.log(
 				`[${new Date().toISOString()}] [PERF] Migrator complete (no migrations needed)`,
@@ -85,7 +85,8 @@ export async function migrateIndexedDBWithFunctions(
 
 	// Open database with version upgrade to trigger migration
 	const db = await new Promise<IDBDatabase>((resolve, reject) => {
-		const request = indexedDB.open(dbName, targetVersion);
+		// Use +1 here because first version is 1...
+		const request = indexedDB.open(dbName, targetVersion + 1);
 
 		request.onerror = () => reject(request.error);
 		request.onsuccess = () => {

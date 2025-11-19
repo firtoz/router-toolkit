@@ -1,6 +1,133 @@
 import { useState, useEffect } from "react";
 import { migrateIndexedDBWithFunctions } from "@firtoz/drizzle-indexeddb";
-import { migrations } from "test-schema/drizzle/indexeddb-migrations";
+import type { IndexedDBMigrationFunction } from "test-schema/drizzle/indexeddb-migrations";
+
+// Fake migrations for testing purposes (5 migrations total)
+const testMigrations: IndexedDBMigrationFunction[] = [
+	// Migration 0: Create initial todo and user tables
+	async (db: IDBDatabase, _transaction: IDBTransaction) => {
+		if (!db.objectStoreNames.contains("todo")) {
+			const store = db.createObjectStore("todo", {
+				keyPath: "id",
+				autoIncrement: false,
+			});
+			store.createIndex("todo_user_id_index", "user_id", { unique: false });
+			store.createIndex("todo_parent_id_index", "parent_id", { unique: false });
+			store.createIndex("todo_completed_index", "completed", { unique: false });
+			store.createIndex("todo_created_at_index", "createdAt", {
+				unique: false,
+			});
+			store.createIndex("todo_updated_at_index", "updatedAt", {
+				unique: false,
+			});
+			store.createIndex("todo_deleted_at_index", "deletedAt", {
+				unique: false,
+			});
+		}
+
+		if (!db.objectStoreNames.contains("user")) {
+			const store = db.createObjectStore("user", {
+				keyPath: "id",
+				autoIncrement: false,
+			});
+			store.createIndex("email_index", "email", { unique: false });
+		}
+	},
+	// Migration 1: Add tag table
+	async (db: IDBDatabase, _transaction: IDBTransaction) => {
+		if (!db.objectStoreNames.contains("tag")) {
+			const store = db.createObjectStore("tag", {
+				keyPath: "id",
+				autoIncrement: false,
+			});
+			store.createIndex("tag_name_index", "name", { unique: false });
+			store.createIndex("tag_user_id_index", "user_id", { unique: false });
+			store.createIndex("tag_created_at_index", "createdAt", { unique: false });
+		}
+
+		if (!db.objectStoreNames.contains("todo_tag")) {
+			const store = db.createObjectStore("todo_tag", {
+				keyPath: ["todo_id", "tag_id"],
+				autoIncrement: false,
+			});
+			store.createIndex("todo_tag_todo_id_index", "todo_id", { unique: false });
+			store.createIndex("todo_tag_tag_id_index", "tag_id", { unique: false });
+		}
+	},
+	// Migration 2: Add comment table
+	async (db: IDBDatabase, _transaction: IDBTransaction) => {
+		if (!db.objectStoreNames.contains("comment")) {
+			const store = db.createObjectStore("comment", {
+				keyPath: "id",
+				autoIncrement: false,
+			});
+			store.createIndex("comment_todo_id_index", "todo_id", { unique: false });
+			store.createIndex("comment_user_id_index", "user_id", { unique: false });
+			store.createIndex("comment_created_at_index", "createdAt", {
+				unique: false,
+			});
+			store.createIndex("comment_updated_at_index", "updatedAt", {
+				unique: false,
+			});
+			store.createIndex("comment_deleted_at_index", "deletedAt", {
+				unique: false,
+			});
+		}
+	},
+	// Migration 3: Add project table and project_id index to todos
+	async (db: IDBDatabase, _transaction: IDBTransaction) => {
+		if (!db.objectStoreNames.contains("project")) {
+			const store = db.createObjectStore("project", {
+				keyPath: "id",
+				autoIncrement: false,
+			});
+			store.createIndex("project_name_index", "name", { unique: false });
+			store.createIndex("project_user_id_index", "user_id", { unique: false });
+			store.createIndex("project_created_at_index", "createdAt", {
+				unique: false,
+			});
+			store.createIndex("project_updated_at_index", "updatedAt", {
+				unique: false,
+			});
+			store.createIndex("project_archived_index", "archived", {
+				unique: false,
+			});
+		}
+
+		const todoStore = _transaction.objectStore("todo");
+		if (!todoStore.indexNames.contains("todo_project_id_index")) {
+			todoStore.createIndex("todo_project_id_index", "project_id", {
+				unique: false,
+			});
+		}
+	},
+	// Migration 4: Add attachment table
+	async (db: IDBDatabase, _transaction: IDBTransaction) => {
+		if (!db.objectStoreNames.contains("attachment")) {
+			const store = db.createObjectStore("attachment", {
+				keyPath: "id",
+				autoIncrement: false,
+			});
+			store.createIndex("attachment_todo_id_index", "todo_id", {
+				unique: false,
+			});
+			store.createIndex("attachment_user_id_index", "user_id", {
+				unique: false,
+			});
+			store.createIndex("attachment_file_name_index", "file_name", {
+				unique: false,
+			});
+			store.createIndex("attachment_file_type_index", "file_type", {
+				unique: false,
+			});
+			store.createIndex("attachment_created_at_index", "createdAt", {
+				unique: false,
+			});
+		}
+	},
+];
+
+const migrations = testMigrations;
 
 interface MigrationStatus {
 	status: "idle" | "checking" | "migrating" | "success" | "error";

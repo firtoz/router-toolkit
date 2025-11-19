@@ -6,6 +6,7 @@ import {
 	type RemoteCallbackId,
 	type DbId,
 	type StartRequestId,
+	type CheckpointId,
 	SqliteWorkerClientMessageSchema,
 	sqliteWorkerServerMessage,
 	SqliteWorkerServerMessageType,
@@ -13,6 +14,7 @@ import {
 	type SqliteWorkerRemoteCallbackClientMessage,
 	RemoteCallbackIdSchema,
 	StartRequestIdSchema,
+	CheckpointIdSchema,
 } from "./schema";
 
 export interface ISqliteWorkerClient {
@@ -21,6 +23,7 @@ export interface ISqliteWorkerClient {
 		resolve: (value: { rows: unknown[] }) => void,
 		reject: (error: Error) => void,
 	) => void;
+	checkpoint: () => Promise<void>;
 	onStarted: (callback: () => void) => void;
 	terminate: () => void;
 }
@@ -75,6 +78,25 @@ export class DbInstance implements ISqliteWorkerClient {
 		this.manager.performRemoteCallback(this.dbId, data, resolve, reject);
 	}
 
+	public checkpoint(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!this.dbId) {
+				reject(
+					new Error(`Database not started - dbId is null for ${this.dbName}`),
+				);
+				return;
+			}
+
+			if (this.debug) {
+				console.log(
+					`[${new Date().toISOString()}] [DbInstance:${this.dbName}] checkpointing database`,
+				);
+			}
+
+			this.manager.checkpoint(this.dbId, resolve, reject);
+		});
+	}
+
 	public onStarted(callback: () => void) {
 		if (this.isStarted) {
 			// Already started, call immediately
@@ -101,6 +123,14 @@ export class SqliteWorkerManager extends WorkerClient<
 		RemoteCallbackId,
 		{
 			resolve: (value: { rows: unknown[] }) => void;
+			reject: (error: Error) => void;
+		}
+	>();
+
+	private readonly checkpointCallbacks = new Map<
+		CheckpointId,
+		{
+			resolve: () => void;
 			reject: (error: Error) => void;
 		}
 	>();
@@ -199,6 +229,26 @@ export class SqliteWorkerManager extends WorkerClient<
 					}
 				}
 				break;
+			case SqliteWorkerServerMessageType.CheckpointComplete:
+				{
+					const { id } = message;
+					const checkpointCallback = this.checkpointCallbacks.get(id);
+					if (checkpointCallback) {
+						checkpointCallback.resolve();
+						this.checkpointCallbacks.delete(id);
+					}
+				}
+				break;
+			case SqliteWorkerServerMessageType.CheckpointError:
+				{
+					const { id, error } = message;
+					const checkpointCallback = this.checkpointCallbacks.get(id);
+					if (checkpointCallback) {
+						checkpointCallback.reject(new Error(error));
+						this.checkpointCallbacks.delete(id);
+					}
+				}
+				break;
 			default:
 				return exhaustiveGuard(type);
 		}
@@ -262,6 +312,28 @@ export class SqliteWorkerManager extends WorkerClient<
 			sql: data.sql,
 			params: data.params,
 			method: data.method,
+		});
+	}
+
+	/**
+	 * Internal method for db instances to checkpoint the database
+	 */
+	public checkpoint(
+		dbId: DbId,
+		resolve: () => void,
+		reject: (error: Error) => void,
+	) {
+		if (this.debug) {
+			console.log(
+				`[${new Date().toISOString()}] [SqliteWorkerManager] checkpointing database for dbId: ${dbId}`,
+			);
+		}
+		const id = CheckpointIdSchema.parse(crypto.randomUUID());
+		this.checkpointCallbacks.set(id, { resolve, reject });
+		this.send({
+			type: SqliteWorkerClientMessageType.Checkpoint,
+			id,
+			dbId,
 		});
 	}
 }

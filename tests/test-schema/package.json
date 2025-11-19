@@ -31,10 +31,12 @@
 		"drizzle/**/*"
 	],
 	"scripts": {
-		"db:generate": "bun drizzle-kit generate && bun post-generate.ts"
+		"db:generate": "bun drizzle-kit generate && bun post-generate.ts",
+		"db:reset": "bun reset-migrations.ts"
 	},
 	"devDependencies": {
-		"drizzle-kit": "^0.31.7"
+		"drizzle-kit": "^0.31.7",
+		"@firtoz/drizzle-indexeddb": "workspace:*"
 	},
 	"dependencies": {
 		"drizzle-orm": "catalog:",
